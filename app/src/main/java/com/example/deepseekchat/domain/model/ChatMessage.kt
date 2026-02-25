@@ -5,5 +5,10 @@ data class ChatMessage(
     val sessionId: String,
     val role: MessageRole,
     val content: String,
-    val timestamp: Long
+    val timestamp: Long,
+    val promptTokens: Int? = null,
+    val promptCacheHitTokens: Int? = null,
+    val promptCacheMissTokens: Int? = null,
+    val completionTokens: Int? = null,
+    val totalTokens: Int? = null
 )

@@ -203,13 +203,15 @@ class ChatViewModel(
         _uiState.update {
             it.copy(
                 messages = emptyList(),
-                streamingText = ""
+                streamingText = "",
+                usage = ConversationUsageUi()
             )
         }
 
         messageJob = viewModelScope.launch {
             observeMessagesUseCase(sessionId).collect { messages ->
-                val mappedMessages = messages.map { it.toUiModel() }
+                val usageResult = messages.toUiModelsWithUsage()
+                val mappedMessages = usageResult.messages
                 _uiState.update { state ->
                     val lastMessage = mappedMessages.lastOrNull()
                     val shouldDropTemporaryStreamingBubble =
@@ -220,6 +222,7 @@ class ChatViewModel(
 
                     state.copy(
                         messages = mappedMessages,
+                        usage = usageResult.usage,
                         streamingText = if (shouldDropTemporaryStreamingBubble) {
                             ""
                         } else {
@@ -261,13 +264,149 @@ class ChatViewModel(
         }
     }
 
-    private fun ChatMessage.toUiModel(): ChatMessageUi {
+    private fun List<ChatMessage>.toUiModelsWithUsage(): UsageCalculation {
+        if (isEmpty()) {
+            return UsageCalculation(
+                messages = emptyList(),
+                usage = ConversationUsageUi()
+            )
+        }
+
+        val pendingRequests = ArrayDeque<PendingRequestCost>()
+        val totalDialogTokens = sumOf { message ->
+            (message.totalTokens ?: 0).coerceAtLeast(0)
+        }
+        var cumulativeInputCostCacheHitUsd = 0.0
+        var cumulativeInputCostCacheMissUsd = 0.0
+        var cumulativeOutputCostUsd = 0.0
+
+        val uiMessages = map { message ->
+            when (message.role) {
+                MessageRole.USER -> {
+                    val input = message.toInputCostBreakdown()
+                    input?.let { usage ->
+                        cumulativeInputCostCacheHitUsd += usage.inputCostCacheHitUsd
+                        cumulativeInputCostCacheMissUsd += usage.inputCostCacheMissUsd
+                        pendingRequests.addLast(
+                            PendingRequestCost(
+                                inputTokens = usage.promptTokens,
+                                inputCacheHitTokens = usage.promptCacheHitTokens,
+                                inputCacheMissTokens = usage.promptCacheMissTokens,
+                                inputCostCacheHitUsd = usage.inputCostCacheHitUsd,
+                                inputCostCacheMissUsd = usage.inputCostCacheMissUsd,
+                                inputTotalCostUsd = usage.inputTotalCostUsd
+                            )
+                        )
+                    }
+                    message.toUiModel(
+                        userTokens = input?.promptTokens,
+                        userCacheHitTokens = input?.promptCacheHitTokens,
+                        userCacheMissTokens = input?.promptCacheMissTokens,
+                        inputCostCacheHitUsd = input?.inputCostCacheHitUsd,
+                        inputCostCacheMissUsd = input?.inputCostCacheMissUsd
+                    )
+                }
+
+                MessageRole.ASSISTANT -> {
+                    val outputTokens = message.completionTokens
+                    val outputCostUsd = outputTokens?.let(TokenPricing::outputCostUsd)
+                    if (outputCostUsd != null) {
+                        cumulativeOutputCostUsd += outputCostUsd
+                    }
+
+                    val matchedRequest = if (pendingRequests.isEmpty()) {
+                        null
+                    } else {
+                        pendingRequests.removeFirst()
+                    }
+
+                    val requestTotalTokens = message.totalTokens ?: if (
+                        matchedRequest != null &&
+                        outputTokens != null
+                    ) {
+                        matchedRequest.inputTokens + outputTokens
+                    } else {
+                        null
+                    }
+
+                    message.toUiModel(
+                        userTokens = matchedRequest?.inputTokens,
+                        userCacheHitTokens = matchedRequest?.inputCacheHitTokens,
+                        userCacheMissTokens = matchedRequest?.inputCacheMissTokens,
+                        inputCostCacheHitUsd = matchedRequest?.inputCostCacheHitUsd,
+                        inputCostCacheMissUsd = matchedRequest?.inputCostCacheMissUsd,
+                        assistantTokens = outputTokens,
+                        requestTotalTokens = requestTotalTokens,
+                        outputCostUsd = outputCostUsd,
+                        requestTotalCostUsd = if (matchedRequest != null && outputCostUsd != null) {
+                            matchedRequest.inputTotalCostUsd + outputCostUsd
+                        } else {
+                            null
+                        }
+                    )
+                }
+            }
+        }
+
+        val cumulativeTotalCostUsd = cumulativeInputCostCacheHitUsd + cumulativeInputCostCacheMissUsd + cumulativeOutputCostUsd
+
+        return UsageCalculation(
+            messages = uiMessages,
+            usage = ConversationUsageUi(
+                contextLength = totalDialogTokens,
+                cumulativeTotalCostUsd = cumulativeTotalCostUsd
+            )
+        )
+    }
+
+    private fun ChatMessage.toUiModel(
+        userTokens: Int? = null,
+        userCacheHitTokens: Int? = null,
+        userCacheMissTokens: Int? = null,
+        inputCostCacheHitUsd: Double? = null,
+        inputCostCacheMissUsd: Double? = null,
+        assistantTokens: Int? = null,
+        requestTotalTokens: Int? = null,
+        outputCostUsd: Double? = null,
+        requestTotalCostUsd: Double? = null
+    ): ChatMessageUi {
         return ChatMessageUi(
             stableId = id.toString(),
             role = role,
             content = content,
             timestamp = timestamp,
-            isStreaming = false
+            isStreaming = false,
+            userTokens = userTokens,
+            userCacheHitTokens = userCacheHitTokens,
+            userCacheMissTokens = userCacheMissTokens,
+            inputCostCacheHitUsd = inputCostCacheHitUsd,
+            inputCostCacheMissUsd = inputCostCacheMissUsd,
+            assistantTokens = assistantTokens,
+            requestTotalTokens = requestTotalTokens,
+            outputCostUsd = outputCostUsd,
+            requestTotalCostUsd = requestTotalCostUsd
+        )
+    }
+
+    private fun ChatMessage.toInputCostBreakdown(): InputCostBreakdown? {
+        val rawPromptTokens = promptTokens ?: return null
+        if (rawPromptTokens <= 0) return null
+
+        val normalizedHitTokens = (promptCacheHitTokens ?: 0).coerceAtLeast(0)
+        val normalizedMissTokens = (promptCacheMissTokens ?: (rawPromptTokens - normalizedHitTokens))
+            .coerceAtLeast(0)
+        val normalizedPromptTokens = maxOf(rawPromptTokens, normalizedHitTokens + normalizedMissTokens)
+
+        val inputCostCacheHitUsd = TokenPricing.inputCostCacheHitUsd(normalizedHitTokens)
+        val inputCostCacheMissUsd = TokenPricing.inputCostCacheMissUsd(normalizedMissTokens)
+
+        return InputCostBreakdown(
+            promptTokens = normalizedPromptTokens,
+            promptCacheHitTokens = normalizedHitTokens,
+            promptCacheMissTokens = normalizedMissTokens,
+            inputCostCacheHitUsd = inputCostCacheHitUsd,
+            inputCostCacheMissUsd = inputCostCacheMissUsd,
+            inputTotalCostUsd = inputCostCacheHitUsd + inputCostCacheMissUsd
         )
     }
 
@@ -286,4 +425,27 @@ class ChatViewModel(
     private fun String.normalizeAssistantText(): String {
         return replace("\r\n", "\n").trimEnd()
     }
+
+    private data class PendingRequestCost(
+        val inputTokens: Int,
+        val inputCacheHitTokens: Int,
+        val inputCacheMissTokens: Int,
+        val inputCostCacheHitUsd: Double,
+        val inputCostCacheMissUsd: Double,
+        val inputTotalCostUsd: Double
+    )
+
+    private data class InputCostBreakdown(
+        val promptTokens: Int,
+        val promptCacheHitTokens: Int,
+        val promptCacheMissTokens: Int,
+        val inputCostCacheHitUsd: Double,
+        val inputCostCacheMissUsd: Double,
+        val inputTotalCostUsd: Double
+    )
+
+    private data class UsageCalculation(
+        val messages: List<ChatMessageUi>,
+        val usage: ConversationUsageUi
+    )
 }

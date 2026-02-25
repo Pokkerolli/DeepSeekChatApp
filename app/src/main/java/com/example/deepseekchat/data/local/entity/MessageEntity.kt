@@ -25,5 +25,10 @@ data class MessageEntity(
     val sessionId: String,
     val role: String,
     val content: String,
-    val createdAt: Long
+    val createdAt: Long,
+    val promptTokens: Int? = null,
+    val promptCacheHitTokens: Int? = null,
+    val promptCacheMissTokens: Int? = null,
+    val completionTokens: Int? = null,
+    val totalTokens: Int? = null
 )

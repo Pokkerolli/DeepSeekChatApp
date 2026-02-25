@@ -11,16 +11,17 @@ import com.example.deepseekchat.data.local.mapper.toDomain
 import com.example.deepseekchat.data.remote.api.DeepSeekApi
 import com.example.deepseekchat.data.remote.dto.ChatCompletionMessage
 import com.example.deepseekchat.data.remote.dto.ChatCompletionRequest
+import com.example.deepseekchat.data.remote.dto.ChatCompletionUsage
+import com.example.deepseekchat.data.remote.dto.StreamOptions
 import com.example.deepseekchat.data.remote.stream.SseStreamParser
+import com.example.deepseekchat.data.remote.stream.SseStreamEvent
 import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
 import com.example.deepseekchat.domain.model.MessageRole
 import com.example.deepseekchat.domain.repository.ChatRepository
-import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -28,6 +29,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import java.util.UUID
 
 class ChatRepositoryImpl(
     private val database: AppDatabase,
@@ -116,6 +118,7 @@ class ChatRepositoryImpl(
                 session.title
             }
 
+            var userMessageId: Long = 0L
             database.withTransaction {
                 sessionDao.insertSession(
                     session.copy(
@@ -123,7 +126,7 @@ class ChatRepositoryImpl(
                         updatedAt = now
                     )
                 )
-                messageDao.insertMessage(
+                userMessageId = messageDao.insertMessage(
                     MessageEntity(
                         sessionId = sessionId,
                         role = MessageRole.USER.name,
@@ -155,7 +158,8 @@ class ChatRepositoryImpl(
             val request = ChatCompletionRequest(
                 model = DEFAULT_MODEL,
                 messages = requestMessages,
-                stream = true
+                stream = true,
+                streamOptions = StreamOptions(includeUsage = true)
             )
 
             val response = deepSeekApi.streamChatCompletions(request)
@@ -172,21 +176,43 @@ class ChatRepositoryImpl(
             }
 
             var finalAssistantText = ""
+            var finalUsage: ChatCompletionUsage? = null
 
-            sseStreamParser.streamText(responseBody).collect { partialText ->
-                finalAssistantText = partialText
-                emit(partialText)
+            sseStreamParser.streamEvents(responseBody).collect { event ->
+                when (event) {
+                    is SseStreamEvent.Text -> {
+                        finalAssistantText = event.value
+                        emit(event.value)
+                    }
+
+                    is SseStreamEvent.Usage -> {
+                        finalUsage = event.value
+                    }
+                }
             }
 
-            if (finalAssistantText.isNotBlank()) {
-                val doneTimestamp = System.currentTimeMillis()
-                database.withTransaction {
+            val promptUsage = resolvePromptUsage(finalUsage)
+            val doneTimestamp = System.currentTimeMillis()
+
+            database.withTransaction {
+                if (promptUsage != null && userMessageId > 0L) {
+                    messageDao.updateUserMessageUsage(
+                        messageId = userMessageId,
+                        promptTokens = promptUsage.promptTokens,
+                        promptCacheHitTokens = promptUsage.promptCacheHitTokens,
+                        promptCacheMissTokens = promptUsage.promptCacheMissTokens
+                    )
+                }
+
+                if (finalAssistantText.isNotBlank()) {
                     messageDao.insertMessage(
                         MessageEntity(
                             sessionId = sessionId,
                             role = MessageRole.ASSISTANT.name,
                             content = finalAssistantText,
-                            createdAt = doneTimestamp
+                            createdAt = doneTimestamp,
+                            completionTokens = finalUsage?.completionTokens,
+                            totalTokens = finalUsage?.totalTokens
                         )
                     )
                     sessionDao.touchSession(sessionId, doneTimestamp)
@@ -245,6 +271,15 @@ class ChatRepositoryImpl(
         return this?.trim()?.ifBlank { null }
     }
 
+    private fun resolvePromptUsage(usage: ChatCompletionUsage?): PromptUsage? {
+        if (usage == null) return null
+        return PromptUsage(
+            promptTokens = usage.promptTokens ?: 0,
+            promptCacheHitTokens = usage.promptCacheHitTokens ?: 0,
+            promptCacheMissTokens = usage.promptCacheMissTokens ?: 0
+        )
+    }
+
     private companion object {
         const val DEFAULT_SESSION_TITLE = "New chat"
         const val DEFAULT_MODEL = "deepseek-chat"
@@ -254,3 +289,9 @@ class ChatRepositoryImpl(
 }
 
 private class ChatApiException(message: String) : RuntimeException(message)
+
+private data class PromptUsage(
+    val promptTokens: Int,
+    val promptCacheHitTokens: Int,
+    val promptCacheMissTokens: Int
+)

@@ -33,7 +33,7 @@ import retrofit2.Retrofit
 val databaseModule = module {
     single<AppDatabase> {
         Room.databaseBuilder(get(), AppDatabase::class.java, "deepseek_chat.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -139,5 +139,20 @@ private fun String.ensureTrailingSlash(): String {
 private val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE chat_sessions ADD COLUMN systemPrompt TEXT")
+    }
+}
+
+private val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN promptTokens INTEGER")
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN promptCacheHitTokens INTEGER")
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN promptCacheMissTokens INTEGER")
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN completionTokens INTEGER")
+    }
+}
+
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE chat_messages ADD COLUMN totalTokens INTEGER")
     }
 }

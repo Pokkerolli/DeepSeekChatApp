@@ -18,10 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -29,6 +30,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
@@ -54,10 +56,11 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.deepseekchat.domain.model.MessageRole
-import kotlinx.coroutines.flow.collect
+import com.example.deepseekchat.presentation.theme.DeepSeekChatTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.koinViewModel
 
@@ -196,24 +199,33 @@ private fun ChatScreen(
     ) { contentPadding ->
         val bottomPadding = contentPadding.calculateBottomPadding()
 
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    start = 16.dp,
-                    end = 16.dp,
                     top = contentPadding.calculateTopPadding(),
                     bottom = bottomPadding
                 ),
-            state = listState,
-            contentPadding = PaddingValues(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(
-                items = displayMessages,
-                key = { it.stableId }
-            ) { message ->
-                MessageBubble(message = message)
+            ConversationUsagePanel(
+                usage = state.usage,
+                isAssistantResponding = state.isSending
+            )
+
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 16.dp, end = 16.dp),
+                state = listState,
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(
+                    items = displayMessages,
+                    key = { it.stableId }
+                ) { message ->
+                    MessageBubble(message = message)
+                }
             }
         }
     }
@@ -235,6 +247,39 @@ private fun ChatScreen(
     }
 }
 
+@Composable
+private fun ConversationUsagePanel(
+    usage: ConversationUsageUi,
+    isAssistantResponding: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Total tokens: ${TokenPricing.formatTokens(usage.contextLength)} (${TokenPricing.formatUsd(usage.cumulativeTotalCostUsd)})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (isAssistantResponding) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(15.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            }
+        }
+    }
+}
+
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 private fun MessageBubble(message: ChatMessageUi) {
@@ -252,25 +297,77 @@ private fun MessageBubble(message: ChatMessageUi) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
         ) {
-            Surface(
-                color = bubbleColor,
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = if (isUser) 1.dp else 0.dp,
-                modifier = Modifier.widthIn(max = maxBubbleWidth)
+            Column(
+                modifier = Modifier.widthIn(max = maxBubbleWidth),
+                horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
             ) {
-                val cursorVisible = rememberBlinkingCursorVisible(enabled = message.isStreaming)
-                val renderedText = if (message.isStreaming && cursorVisible) {
-                    "${message.content}▍"
-                } else {
-                    message.content
+                Surface(
+                    color = bubbleColor,
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = if (isUser) 1.dp else 0.dp
+                ) {
+                    val cursorVisible = rememberBlinkingCursorVisible(enabled = message.isStreaming)
+                    val renderedText = if (message.isStreaming && cursorVisible) {
+                        "${message.content}▍"
+                    } else {
+                        message.content
+                    }
+
+                    Text(
+                        text = renderedText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
                 }
 
-                Text(
-                    text = renderedText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
+                buildMessageUsageText(message)?.let { usageText ->
+                    Text(
+                        text = usageText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
+        }
+    }
+}
+
+private fun buildMessageUsageText(message: ChatMessageUi): String? {
+    return when (message.role) {
+        MessageRole.USER -> null
+
+        MessageRole.ASSISTANT -> {
+            val outputTokens = message.assistantTokens ?: return null
+            val outputCostUsd = message.outputCostUsd ?: return null
+            val totalCostUsd = message.requestTotalCostUsd
+            val requestTotalTokens = message.requestTotalTokens
+            val inputTokens = message.userTokens
+            val inputCacheHitTokens = message.userCacheHitTokens
+            val inputCacheMissTokens = message.userCacheMissTokens
+            val inputCostCacheHitUsd = message.inputCostCacheHitUsd
+            val inputCostCacheMissUsd = message.inputCostCacheMissUsd
+
+            val lines = mutableListOf<String>()
+
+            if (
+                inputTokens != null &&
+                inputCacheHitTokens != null &&
+                inputCacheMissTokens != null &&
+                inputCostCacheHitUsd != null &&
+                inputCostCacheMissUsd != null
+            ) {
+                val sumCost = TokenPricing.formatUsd(inputCostCacheHitUsd + inputCostCacheMissUsd)
+                lines += "Prompt tokens: ${TokenPricing.formatTokens(inputTokens)} ($sumCost) Hit ${TokenPricing.formatTokens(inputCacheHitTokens)}, miss ${TokenPricing.formatTokens(inputCacheMissTokens)}"
+            }
+
+            lines += "Completion tokens: ${TokenPricing.formatTokens(outputTokens)} (${TokenPricing.formatUsd(outputCostUsd)})"
+
+            if (requestTotalTokens != null && totalCostUsd != null) {
+                lines += "Total tokens: ${TokenPricing.formatTokens(requestTotalTokens)} out of ${TokenPricing.formatTokens(TokenPricing.MAX_CONTEXT_LENGTH)} (${TokenPricing.formatUsd(totalCostUsd)})"
+            }
+
+            lines.joinToString(separator = "\n")
         }
     }
 }
@@ -424,3 +521,71 @@ private val SYSTEM_PROMPT_PRESETS = listOf(
                 "Если пользователь просит “быстро” или “только ответ” — сокращай объём, но всё равно сохраняй ясность."
     ),
 )
+
+@Preview(showBackground = true, widthDp = 412, heightDp = 915)
+@Composable
+private fun ChatScreenPreview() {
+    DeepSeekChatTheme(dynamicColor = false) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            ChatScreen(
+                state = ChatUiState(
+                    sessions = listOf(
+                        ChatSessionUi(
+                            id = "preview-session",
+                            title = "Preview chat",
+                            updatedAt = System.currentTimeMillis(),
+                            systemPrompt = null
+                        )
+                    ),
+                    activeSessionId = "preview-session",
+                    activeSessionTitle = "Preview chat",
+                    messages = listOf(
+                        ChatMessageUi(
+                            stableId = "preview-user-1",
+                            role = MessageRole.USER,
+                            content = "Сделай краткий план запуска MVP за 2 недели.",
+                            timestamp = System.currentTimeMillis() - 90_000,
+                            userTokens = 854,
+                            userCacheHitTokens = 832,
+                            userCacheMissTokens = 22,
+                            inputCostCacheHitUsd = TokenPricing.inputCostCacheHitUsd(832),
+                            inputCostCacheMissUsd = TokenPricing.inputCostCacheMissUsd(22)
+                        ),
+                        ChatMessageUi(
+                            stableId = "preview-assistant-1",
+                            role = MessageRole.ASSISTANT,
+                            content = "1) Определить scope и ключевые фичи.\n2) Поднять backend/API.\n3) Собрать UI и базовую аналитику.",
+                            timestamp = System.currentTimeMillis() - 60_000,
+                            userTokens = 854,
+                            userCacheHitTokens = 832,
+                            userCacheMissTokens = 22,
+                            inputCostCacheHitUsd = TokenPricing.inputCostCacheHitUsd(832),
+                            inputCostCacheMissUsd = TokenPricing.inputCostCacheMissUsd(22),
+                            assistantTokens = 48,
+                            requestTotalTokens = 902,
+                            outputCostUsd = TokenPricing.outputCostUsd(48),
+                            requestTotalCostUsd = TokenPricing.inputCostCacheHitUsd(832) +
+                                    TokenPricing.inputCostCacheMissUsd(22) +
+                                    TokenPricing.outputCostUsd(48)
+                        )
+                    ),
+                    input = "Добавь риски и метрики.",
+                    isSending = true,
+                    streamingText = "4) Уточнить риски релиза и задать KPI...",
+                    usage = ConversationUsageUi(
+                        contextLength = 902,
+                        cumulativeTotalCostUsd = TokenPricing.inputCostCacheHitUsd(832) +
+                                TokenPricing.inputCostCacheMissUsd(22) +
+                                TokenPricing.outputCostUsd(48)
+                    )
+                ),
+                onInputChanged = {},
+                onSendClick = {},
+                onSessionSelected = {},
+                onCreateSession = {},
+                onSystemPromptSelected = {},
+                onConsumeError = {}
+            )
+        }
+    }
+}

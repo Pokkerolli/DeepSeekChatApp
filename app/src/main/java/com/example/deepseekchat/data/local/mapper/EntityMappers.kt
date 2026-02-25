@@ -22,6 +22,11 @@ fun MessageEntity.toDomain(): ChatMessage {
         sessionId = sessionId,
         role = MessageRole.fromStored(role),
         content = content,
-        timestamp = createdAt
+        timestamp = createdAt,
+        promptTokens = promptTokens,
+        promptCacheHitTokens = promptCacheHitTokens,
+        promptCacheMissTokens = promptCacheMissTokens,
+        completionTokens = completionTokens,
+        totalTokens = totalTokens
     )
 }

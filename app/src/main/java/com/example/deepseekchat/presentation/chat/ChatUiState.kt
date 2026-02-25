@@ -14,7 +14,21 @@ data class ChatMessageUi(
     val role: MessageRole,
     val content: String,
     val timestamp: Long,
-    val isStreaming: Boolean = false
+    val isStreaming: Boolean = false,
+    val userTokens: Int? = null,
+    val userCacheHitTokens: Int? = null,
+    val userCacheMissTokens: Int? = null,
+    val inputCostCacheHitUsd: Double? = null,
+    val inputCostCacheMissUsd: Double? = null,
+    val assistantTokens: Int? = null,
+    val requestTotalTokens: Int? = null,
+    val outputCostUsd: Double? = null,
+    val requestTotalCostUsd: Double? = null
+)
+
+data class ConversationUsageUi(
+    val contextLength: Int = 0,
+    val cumulativeTotalCostUsd: Double = 0.0
 )
 
 data class ChatUiState(
@@ -26,5 +40,6 @@ data class ChatUiState(
     val input: String = "",
     val isSending: Boolean = false,
     val streamingText: String = "",
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val usage: ConversationUsageUi = ConversationUsageUi()
 )

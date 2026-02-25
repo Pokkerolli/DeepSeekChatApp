@@ -17,4 +17,20 @@ interface MessageDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertMessage(message: MessageEntity): Long
+
+    @Query(
+        """
+        UPDATE chat_messages
+        SET promptTokens = :promptTokens,
+            promptCacheHitTokens = :promptCacheHitTokens,
+            promptCacheMissTokens = :promptCacheMissTokens
+        WHERE id = :messageId
+        """
+    )
+    suspend fun updateUserMessageUsage(
+        messageId: Long,
+        promptTokens: Int?,
+        promptCacheHitTokens: Int?,
+        promptCacheMissTokens: Int?
+    )
 }
