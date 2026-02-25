@@ -11,7 +11,8 @@ fun SessionEntity.toDomain(): ChatSession {
         id = id,
         title = title,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        systemPrompt = systemPrompt
     )
 }
 

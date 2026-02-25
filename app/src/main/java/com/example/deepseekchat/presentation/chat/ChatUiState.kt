@@ -5,7 +5,8 @@ import com.example.deepseekchat.domain.model.MessageRole
 data class ChatSessionUi(
     val id: String,
     val title: String,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val systemPrompt: String?
 )
 
 data class ChatMessageUi(
@@ -20,6 +21,7 @@ data class ChatUiState(
     val sessions: List<ChatSessionUi> = emptyList(),
     val activeSessionId: String? = null,
     val activeSessionTitle: String = "New chat",
+    val activeSessionSystemPrompt: String? = null,
     val messages: List<ChatMessageUi> = emptyList(),
     val input: String = "",
     val isSending: Boolean = false,

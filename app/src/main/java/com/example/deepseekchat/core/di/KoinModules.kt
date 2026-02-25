@@ -1,6 +1,8 @@
 package com.example.deepseekchat.core.di
 
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.deepseekchat.BuildConfig
 import com.example.deepseekchat.data.local.dao.MessageDao
 import com.example.deepseekchat.data.local.dao.SessionDao
@@ -15,6 +17,7 @@ import com.example.deepseekchat.domain.usecase.GetActiveSessionUseCase
 import com.example.deepseekchat.domain.usecase.ObserveMessagesUseCase
 import com.example.deepseekchat.domain.usecase.ObserveSessionsUseCase
 import com.example.deepseekchat.domain.usecase.SendMessageUseCase
+import com.example.deepseekchat.domain.usecase.SetSessionSystemPromptUseCase
 import com.example.deepseekchat.domain.usecase.SetActiveSessionUseCase
 import com.example.deepseekchat.presentation.chat.ChatViewModel
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -30,6 +33,7 @@ import retrofit2.Retrofit
 val databaseModule = module {
     single<AppDatabase> {
         Room.databaseBuilder(get(), AppDatabase::class.java, "deepseek_chat.db")
+            .addMigrations(MIGRATION_1_2)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -110,6 +114,7 @@ val useCaseModule = module {
     factory { ObserveSessionsUseCase(get()) }
     factory { CreateSessionUseCase(get()) }
     factory { SetActiveSessionUseCase(get()) }
+    factory { SetSessionSystemPromptUseCase(get()) }
     factory { GetActiveSessionUseCase(get()) }
 }
 
@@ -121,6 +126,7 @@ val viewModelModule = module {
             observeSessionsUseCase = get(),
             createSessionUseCase = get(),
             setActiveSessionUseCase = get(),
+            setSessionSystemPromptUseCase = get(),
             getActiveSessionUseCase = get()
         )
     }
@@ -128,4 +134,10 @@ val viewModelModule = module {
 
 private fun String.ensureTrailingSlash(): String {
     return if (endsWith('/')) this else "$this/"
+}
+
+private val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE chat_sessions ADD COLUMN systemPrompt TEXT")
+    }
 }

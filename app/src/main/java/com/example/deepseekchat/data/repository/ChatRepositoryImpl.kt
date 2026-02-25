@@ -67,6 +67,31 @@ class ChatRepositoryImpl(
         activeSessionPreferences.setActiveSessionId(sessionId)
     }
 
+    override suspend fun setSessionSystemPrompt(sessionId: String, systemPrompt: String?) {
+        val now = System.currentTimeMillis()
+        val normalizedPrompt = systemPrompt.normalizeSystemPrompt()
+        val existingSession = sessionDao.getSessionById(sessionId)
+
+        if (existingSession == null) {
+            sessionDao.insertSession(
+                SessionEntity(
+                    id = sessionId,
+                    title = DEFAULT_SESSION_TITLE,
+                    createdAt = now,
+                    updatedAt = now,
+                    systemPrompt = normalizedPrompt
+                )
+            )
+            return
+        }
+
+        sessionDao.updateSystemPrompt(
+            sessionId = sessionId,
+            systemPrompt = normalizedPrompt,
+            updatedAt = now
+        )
+    }
+
     override fun observeActiveSessionId(): Flow<String?> {
         return activeSessionPreferences.observeActiveSessionId()
     }
@@ -114,10 +139,22 @@ class ChatRepositoryImpl(
                     content = message.content
                 )
             }
+            val systemPrompt = session.systemPrompt.normalizeSystemPrompt()
+            val requestMessages = buildList {
+                if (systemPrompt != null) {
+                    add(
+                        ChatCompletionMessage(
+                            role = SYSTEM_ROLE,
+                            content = systemPrompt
+                        )
+                    )
+                }
+                addAll(contextMessages)
+            }
 
             val request = ChatCompletionRequest(
                 model = DEFAULT_MODEL,
-                messages = contextMessages,
+                messages = requestMessages,
                 stream = true
             )
 
@@ -204,9 +241,14 @@ class ChatRepositoryImpl(
         return firstLine.take(48).ifBlank { DEFAULT_SESSION_TITLE }
     }
 
+    private fun String?.normalizeSystemPrompt(): String? {
+        return this?.trim()?.ifBlank { null }
+    }
+
     private companion object {
         const val DEFAULT_SESSION_TITLE = "New chat"
         const val DEFAULT_MODEL = "deepseek-chat"
+        const val SYSTEM_ROLE = "system"
         const val MAX_RAW_ERROR_LENGTH = 240
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,6 +31,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -70,6 +73,7 @@ fun ChatRoute(
         onSendClick = viewModel::onSendClicked,
         onSessionSelected = viewModel::onSessionSelected,
         onCreateSession = viewModel::onCreateNewSession,
+        onSystemPromptSelected = viewModel::onSystemPromptSelected,
         onConsumeError = viewModel::consumeError
     )
 }
@@ -82,6 +86,7 @@ private fun ChatScreen(
     onSendClick: () -> Unit,
     onSessionSelected: (String) -> Unit,
     onCreateSession: () -> Unit,
+    onSystemPromptSelected: (String) -> Unit,
     onConsumeError: () -> Unit
 ) {
     var showSessionsSheet by rememberSaveable { mutableStateOf(false) }
@@ -181,7 +186,10 @@ private fun ChatScreen(
             MessageInputBar(
                 value = state.input,
                 isSending = state.isSending,
+                showSystemPromptPresets = state.messages.isEmpty() && !state.isSending,
+                selectedSystemPrompt = state.activeSessionSystemPrompt,
                 onValueChanged = onInputChanged,
+                onSystemPromptSelected = onSystemPromptSelected,
                 onSendClick = onSendClick
             )
         }
@@ -271,43 +279,71 @@ private fun MessageBubble(message: ChatMessageUi) {
 private fun MessageInputBar(
     value: String,
     isSending: Boolean,
+    showSystemPromptPresets: Boolean,
+    selectedSystemPrompt: String?,
     onValueChanged: (String) -> Unit,
+    onSystemPromptSelected: (String) -> Unit,
     onSendClick: () -> Unit
 ) {
     Surface(tonalElevation = 2.dp) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .imePadding()
                 .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.Bottom
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            TextField(
-                value = value,
-                onValueChange = onValueChanged,
-                modifier = Modifier.weight(1f),
-                minLines = 1,
-                maxLines = 6,
-                shape = MaterialTheme.shapes.extraLarge,
-                placeholder = {
-                    Text(text = "Send a message...")
-                },
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences
-                )
-            )
+            if (showSystemPromptPresets) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    items(
+                        items = SYSTEM_PROMPT_PRESETS,
+                        key = { it.label }
+                    ) { preset ->
+                        FilterChip(
+                            selected = selectedSystemPrompt == preset.prompt,
+                            onClick = { onSystemPromptSelected(preset.prompt) },
+                            label = {
+                                Text(text = preset.label)
+                            }
+                        )
+                    }
+                }
+            }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            FilledIconButton(
-                onClick = onSendClick,
-                enabled = value.isNotBlank() && !isSending
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send"
+                TextField(
+                    value = value,
+                    onValueChange = onValueChanged,
+                    modifier = Modifier.weight(1f),
+                    minLines = 1,
+                    maxLines = 6,
+                    shape = MaterialTheme.shapes.extraLarge,
+                    placeholder = {
+                        Text(text = "Send a message...")
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences
+                    )
                 )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                FilledIconButton(
+                    onClick = onSendClick,
+                    enabled = value.isNotBlank() && !isSending
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send"
+                    )
+                }
             }
         }
     }
@@ -350,3 +386,41 @@ private suspend fun LazyListState.scrollToBottom() {
         }
     }
 }
+
+private data class SystemPromptPreset(
+    val label: String,
+    val prompt: String
+)
+
+private val SYSTEM_PROMPT_PRESETS = listOf(
+    SystemPromptPreset(
+        label = "Лаконичные ответы",
+        prompt = "Ты — полезный ассистент. Отвечай кратко, по делу и структурно.\n" +
+                "Правила:\n" +
+                "Сначала дай итог/ответ в 1–2 предложениях.\n" +
+                "Затем (если нужно) — короткий список действий/пунктов.\n" +
+                "Не добавляй лишней теории, воды, предупреждений и “размышлений вслух”.\n" +
+                "Если запрос неполный, не задавай много вопросов: сделай разумные допущения и явно отметь их одной строкой.\n" +
+                "Используй форматирование: короткие абзацы, маркированные списки, мини-заголовки.\n" +
+                "Если пользователь просит текст/письмо/план — сразу выдай готовый вариант.\n" +
+                "Если нужна точность (цифры, сроки, формулировки) — уточни 1 ключевой вопрос, иначе продолжай с допущением.\n" +
+                "Тон: спокойный, деловой, без фамильярности."
+    ),
+    SystemPromptPreset(
+        label = "Наставник",
+        prompt = "Ты — экспертный ассистент и наставник. Отвечай развернуто, понятно, с примерами и пошаговым разбором.\n" +
+                "Правила:\n" +
+                "Структура ответа:\n" +
+                "Короткое резюме (2–4 строки)\n" +
+                "Пошаговое объяснение (логика/алгоритм)\n" +
+                "Примеры (минимум 1–2, лучше с вариациями)\n" +
+                "Типичные ошибки и как избежать\n" +
+                "Что делать дальше (чеклист/следующие шаги)\n" +
+                "Для сложных задач: сначала опиши план решения, затем выполняй его.\n" +
+                "Если данных не хватает, задай до 3 уточняющих вопросов, но параллельно предложи решение на основе допущений.\n" +
+                "Пиши простым языком, раскрывай термины.\n" +
+                "Можно использовать таблицы, списки, схемы, псевдокод.\n" +
+                "Тон: дружелюбный, терпеливый, обучающий.\n" +
+                "Если пользователь просит “быстро” или “только ответ” — сокращай объём, но всё равно сохраняй ясность."
+    ),
+)

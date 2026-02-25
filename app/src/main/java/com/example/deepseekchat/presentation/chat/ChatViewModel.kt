@@ -11,16 +11,16 @@ import com.example.deepseekchat.domain.usecase.ObserveMessagesUseCase
 import com.example.deepseekchat.domain.usecase.ObserveSessionsUseCase
 import com.example.deepseekchat.domain.usecase.SendMessageUseCase
 import com.example.deepseekchat.domain.usecase.SetActiveSessionUseCase
-import java.io.IOException
-import java.net.UnknownHostException
+import com.example.deepseekchat.domain.usecase.SetSessionSystemPromptUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
+import java.net.UnknownHostException
 
 class ChatViewModel(
     private val sendMessageUseCase: SendMessageUseCase,
@@ -28,6 +28,7 @@ class ChatViewModel(
     private val observeSessionsUseCase: ObserveSessionsUseCase,
     private val createSessionUseCase: CreateSessionUseCase,
     private val setActiveSessionUseCase: SetActiveSessionUseCase,
+    private val setSessionSystemPromptUseCase: SetSessionSystemPromptUseCase,
     private val getActiveSessionUseCase: GetActiveSessionUseCase
 ) : ViewModel() {
 
@@ -39,6 +40,7 @@ class ChatViewModel(
 
     private var messageJob: Job? = null
     private var streamJob: Job? = null
+    private var systemPromptJob: Job? = null
     private var creatingInitialSession = false
 
     init {
@@ -69,6 +71,7 @@ class ChatViewModel(
         streamJob = viewModelScope.launch {
             var failed = false
             try {
+                systemPromptJob?.join()
                 sendMessageUseCase(sessionId, userText).collect { partial ->
                     _uiState.update { state ->
                         if (state.activeSessionId == sessionId) {
@@ -97,8 +100,18 @@ class ChatViewModel(
                                 streamingText = ""
                             )
                         } else {
-                            // Keep streaming text until the final assistant message appears in Room.
-                            state.copy(isSending = false)
+                            // If the final assistant message is already in Room state, drop the temporary stream bubble now.
+                            val hasFinalAssistantMessage =
+                                state.streamingText.isNotEmpty() &&
+                                    state.messages.lastOrNull()?.let { last ->
+                                        last.role == MessageRole.ASSISTANT &&
+                                            isEquivalentAssistantText(last.content, state.streamingText)
+                                    } == true
+
+                            state.copy(
+                                isSending = false,
+                                streamingText = if (hasFinalAssistantMessage) "" else state.streamingText
+                            )
                         }
                     } else {
                         state.copy(
@@ -125,6 +138,21 @@ class ChatViewModel(
         viewModelScope.launch {
             val session = createSessionUseCase()
             setActiveSessionUseCase(session.id)
+        }
+    }
+
+    fun onSystemPromptSelected(systemPrompt: String) {
+        val state = _uiState.value
+        val sessionId = state.activeSessionId ?: return
+        if (state.messages.isNotEmpty() || state.isSending) return
+
+        val normalizedPrompt = systemPrompt.trim()
+        if (normalizedPrompt.isBlank()) return
+
+        _uiState.update { it.copy(activeSessionSystemPrompt = normalizedPrompt) }
+        systemPromptJob?.cancel()
+        systemPromptJob = viewModelScope.launch {
+            setSessionSystemPromptUseCase(sessionId, normalizedPrompt)
         }
     }
 
@@ -188,7 +216,7 @@ class ChatViewModel(
                         !state.isSending &&
                             state.streamingText.isNotEmpty() &&
                             lastMessage?.role == MessageRole.ASSISTANT &&
-                            lastMessage.content == state.streamingText
+                            isEquivalentAssistantText(lastMessage.content, state.streamingText)
 
                     state.copy(
                         messages = mappedMessages,
@@ -211,11 +239,13 @@ class ChatViewModel(
                     ChatSessionUi(
                         id = it.id,
                         title = it.title,
-                        updatedAt = it.updatedAt
+                        updatedAt = it.updatedAt,
+                        systemPrompt = it.systemPrompt
                     )
                 },
                 activeSessionId = selectedSession?.id,
-                activeSessionTitle = selectedSession?.title ?: "New chat"
+                activeSessionTitle = selectedSession?.title ?: "New chat",
+                activeSessionSystemPrompt = selectedSession?.systemPrompt
             )
         }
     }
@@ -247,5 +277,13 @@ class ChatViewModel(
             is IOException -> "Network error. Check your connection and try again."
             else -> message ?: "Request failed"
         }
+    }
+
+    private fun isEquivalentAssistantText(saved: String, streaming: String): Boolean {
+        return saved.normalizeAssistantText() == streaming.normalizeAssistantText()
+    }
+
+    private fun String.normalizeAssistantText(): String {
+        return replace("\r\n", "\n").trimEnd()
     }
 }
