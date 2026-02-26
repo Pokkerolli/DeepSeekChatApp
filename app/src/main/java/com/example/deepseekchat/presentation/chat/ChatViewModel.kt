@@ -6,11 +6,14 @@ import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
 import com.example.deepseekchat.domain.model.MessageRole
 import com.example.deepseekchat.domain.usecase.CreateSessionUseCase
+import com.example.deepseekchat.domain.usecase.DeleteSessionUseCase
 import com.example.deepseekchat.domain.usecase.GetActiveSessionUseCase
 import com.example.deepseekchat.domain.usecase.ObserveMessagesUseCase
 import com.example.deepseekchat.domain.usecase.ObserveSessionsUseCase
+import com.example.deepseekchat.domain.usecase.RunContextSummarizationIfNeededUseCase
 import com.example.deepseekchat.domain.usecase.SendMessageUseCase
 import com.example.deepseekchat.domain.usecase.SetActiveSessionUseCase
+import com.example.deepseekchat.domain.usecase.SetSessionContextCompressionEnabledUseCase
 import com.example.deepseekchat.domain.usecase.SetSessionSystemPromptUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -27,8 +30,11 @@ class ChatViewModel(
     private val observeMessagesUseCase: ObserveMessagesUseCase,
     private val observeSessionsUseCase: ObserveSessionsUseCase,
     private val createSessionUseCase: CreateSessionUseCase,
+    private val deleteSessionUseCase: DeleteSessionUseCase,
     private val setActiveSessionUseCase: SetActiveSessionUseCase,
     private val setSessionSystemPromptUseCase: SetSessionSystemPromptUseCase,
+    private val setSessionContextCompressionEnabledUseCase: SetSessionContextCompressionEnabledUseCase,
+    private val runContextSummarizationIfNeededUseCase: RunContextSummarizationIfNeededUseCase,
     private val getActiveSessionUseCase: GetActiveSessionUseCase
 ) : ViewModel() {
 
@@ -70,6 +76,7 @@ class ChatViewModel(
         streamJob?.cancel()
         streamJob = viewModelScope.launch {
             var failed = false
+            var completedSuccessfully = false
             try {
                 systemPromptJob?.join()
                 sendMessageUseCase(sessionId, userText).collect { partial ->
@@ -81,6 +88,7 @@ class ChatViewModel(
                         }
                     }
                 }
+                completedSuccessfully = true
             } catch (_: CancellationException) {
                 // Stream was cancelled explicitly (e.g. session switch).
             } catch (throwable: Throwable) {
@@ -120,6 +128,18 @@ class ChatViewModel(
                         )
                     }
                 }
+
+                if (completedSuccessfully) {
+                    viewModelScope.launch {
+                        try {
+                            runContextSummarizationIfNeededUseCase(sessionId)
+                        } catch (_: CancellationException) {
+                            // Ignore explicit cancellation.
+                        } catch (_: Throwable) {
+                            // Compression failures must not break chat response flow.
+                        }
+                    }
+                }
             }
         }
     }
@@ -141,6 +161,16 @@ class ChatViewModel(
         }
     }
 
+    fun onDeleteSession(sessionId: String) {
+        if (sessionId == activeSessionId) {
+            cancelCurrentStream()
+        }
+
+        viewModelScope.launch {
+            deleteSessionUseCase(sessionId)
+        }
+    }
+
     fun onSystemPromptSelected(systemPrompt: String) {
         val state = _uiState.value
         val sessionId = state.activeSessionId ?: return
@@ -153,6 +183,18 @@ class ChatViewModel(
         systemPromptJob?.cancel()
         systemPromptJob = viewModelScope.launch {
             setSessionSystemPromptUseCase(sessionId, normalizedPrompt)
+        }
+    }
+
+    fun onContextCompressionToggled(enabled: Boolean) {
+        val state = _uiState.value
+        val sessionId = state.activeSessionId ?: return
+        if (state.messages.isNotEmpty() || state.isSending) return
+        if (state.activeSessionContextCompressionEnabled == enabled) return
+
+        _uiState.update { it.copy(activeSessionContextCompressionEnabled = enabled) }
+        viewModelScope.launch {
+            setSessionContextCompressionEnabledUseCase(sessionId, enabled)
         }
     }
 
@@ -243,12 +285,18 @@ class ChatViewModel(
                         id = it.id,
                         title = it.title,
                         updatedAt = it.updatedAt,
-                        systemPrompt = it.systemPrompt
+                        systemPrompt = it.systemPrompt,
+                        contextCompressionEnabled = it.contextCompressionEnabled,
+                        isContextSummarizationInProgress = it.isContextSummarizationInProgress
                     )
                 },
                 activeSessionId = selectedSession?.id,
                 activeSessionTitle = selectedSession?.title ?: "New chat",
-                activeSessionSystemPrompt = selectedSession?.systemPrompt
+                activeSessionSystemPrompt = selectedSession?.systemPrompt,
+                activeSessionContextCompressionEnabled =
+                    selectedSession?.contextCompressionEnabled ?: false,
+                isActiveSessionContextSummarizationInProgress =
+                    selectedSession?.isContextSummarizationInProgress ?: false
             )
         }
     }

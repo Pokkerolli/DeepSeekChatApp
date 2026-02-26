@@ -13,10 +13,13 @@ import com.example.deepseekchat.data.remote.stream.SseStreamParser
 import com.example.deepseekchat.data.repository.ChatRepositoryImpl
 import com.example.deepseekchat.domain.repository.ChatRepository
 import com.example.deepseekchat.domain.usecase.CreateSessionUseCase
+import com.example.deepseekchat.domain.usecase.DeleteSessionUseCase
 import com.example.deepseekchat.domain.usecase.GetActiveSessionUseCase
 import com.example.deepseekchat.domain.usecase.ObserveMessagesUseCase
 import com.example.deepseekchat.domain.usecase.ObserveSessionsUseCase
+import com.example.deepseekchat.domain.usecase.RunContextSummarizationIfNeededUseCase
 import com.example.deepseekchat.domain.usecase.SendMessageUseCase
+import com.example.deepseekchat.domain.usecase.SetSessionContextCompressionEnabledUseCase
 import com.example.deepseekchat.domain.usecase.SetSessionSystemPromptUseCase
 import com.example.deepseekchat.domain.usecase.SetActiveSessionUseCase
 import com.example.deepseekchat.presentation.chat.ChatViewModel
@@ -33,7 +36,14 @@ import retrofit2.Retrofit
 val databaseModule = module {
     single<AppDatabase> {
         Room.databaseBuilder(get(), AppDatabase::class.java, "deepseek_chat.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7
+            )
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -113,8 +123,11 @@ val useCaseModule = module {
     factory { ObserveMessagesUseCase(get()) }
     factory { ObserveSessionsUseCase(get()) }
     factory { CreateSessionUseCase(get()) }
+    factory { DeleteSessionUseCase(get()) }
     factory { SetActiveSessionUseCase(get()) }
     factory { SetSessionSystemPromptUseCase(get()) }
+    factory { SetSessionContextCompressionEnabledUseCase(get()) }
+    factory { RunContextSummarizationIfNeededUseCase(get()) }
     factory { GetActiveSessionUseCase(get()) }
 }
 
@@ -125,8 +138,11 @@ val viewModelModule = module {
             observeMessagesUseCase = get(),
             observeSessionsUseCase = get(),
             createSessionUseCase = get(),
+            deleteSessionUseCase = get(),
             setActiveSessionUseCase = get(),
             setSessionSystemPromptUseCase = get(),
+            setSessionContextCompressionEnabledUseCase = get(),
+            runContextSummarizationIfNeededUseCase = get(),
             getActiveSessionUseCase = get()
         )
     }
@@ -154,5 +170,37 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
 private val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE chat_messages ADD COLUMN totalTokens INTEGER")
+    }
+}
+
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE chat_sessions " +
+                "ADD COLUMN contextCompressionEnabled INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL("ALTER TABLE chat_sessions ADD COLUMN contextSummary TEXT")
+        db.execSQL(
+            "ALTER TABLE chat_sessions " +
+                "ADD COLUMN summarizedMessagesCount INTEGER NOT NULL DEFAULT 0"
+        )
+    }
+}
+
+private val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE chat_messages " +
+                "ADD COLUMN compressionState TEXT NOT NULL DEFAULT 'ACTIVE'"
+        )
+    }
+}
+
+private val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE chat_sessions " +
+                "ADD COLUMN isContextSummarizationInProgress INTEGER NOT NULL DEFAULT 0"
+        )
     }
 }

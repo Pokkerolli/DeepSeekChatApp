@@ -9,5 +9,9 @@ data class SessionEntity(
     val title: String,
     val createdAt: Long,
     val updatedAt: Long,
-    val systemPrompt: String? = null
+    val systemPrompt: String? = null,
+    val contextCompressionEnabled: Boolean = false,
+    val contextSummary: String? = null,
+    val summarizedMessagesCount: Int = 0,
+    val isContextSummarizationInProgress: Boolean = false
 )

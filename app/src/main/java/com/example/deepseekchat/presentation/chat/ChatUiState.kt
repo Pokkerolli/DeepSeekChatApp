@@ -6,7 +6,9 @@ data class ChatSessionUi(
     val id: String,
     val title: String,
     val updatedAt: Long,
-    val systemPrompt: String?
+    val systemPrompt: String?,
+    val contextCompressionEnabled: Boolean,
+    val isContextSummarizationInProgress: Boolean
 )
 
 data class ChatMessageUi(
@@ -36,6 +38,8 @@ data class ChatUiState(
     val activeSessionId: String? = null,
     val activeSessionTitle: String = "New chat",
     val activeSessionSystemPrompt: String? = null,
+    val activeSessionContextCompressionEnabled: Boolean = false,
+    val isActiveSessionContextSummarizationInProgress: Boolean = false,
     val messages: List<ChatMessageUi> = emptyList(),
     val input: String = "",
     val isSending: Boolean = false,

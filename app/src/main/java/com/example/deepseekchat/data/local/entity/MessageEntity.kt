@@ -30,5 +30,6 @@ data class MessageEntity(
     val promptCacheHitTokens: Int? = null,
     val promptCacheMissTokens: Int? = null,
     val completionTokens: Int? = null,
-    val totalTokens: Int? = null
+    val totalTokens: Int? = null,
+    val compressionState: String = MessageCompressionState.ACTIVE.name
 )

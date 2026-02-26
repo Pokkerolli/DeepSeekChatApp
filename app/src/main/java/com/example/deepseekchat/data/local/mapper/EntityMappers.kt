@@ -12,7 +12,11 @@ fun SessionEntity.toDomain(): ChatSession {
         title = title,
         createdAt = createdAt,
         updatedAt = updatedAt,
-        systemPrompt = systemPrompt
+        systemPrompt = systemPrompt,
+        contextCompressionEnabled = contextCompressionEnabled,
+        contextSummary = contextSummary,
+        summarizedMessagesCount = summarizedMessagesCount,
+        isContextSummarizationInProgress = isContextSummarizationInProgress
     )
 }
 

@@ -58,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.deepseekchat.domain.model.MessageRole
 import com.example.deepseekchat.presentation.theme.DeepSeekChatTheme
@@ -75,8 +76,10 @@ fun ChatRoute(
         onInputChanged = viewModel::onInputChanged,
         onSendClick = viewModel::onSendClicked,
         onSessionSelected = viewModel::onSessionSelected,
+        onSessionDeleted = viewModel::onDeleteSession,
         onCreateSession = viewModel::onCreateNewSession,
         onSystemPromptSelected = viewModel::onSystemPromptSelected,
+        onContextCompressionToggled = viewModel::onContextCompressionToggled,
         onConsumeError = viewModel::consumeError
     )
 }
@@ -88,8 +91,10 @@ private fun ChatScreen(
     onInputChanged: (String) -> Unit,
     onSendClick: () -> Unit,
     onSessionSelected: (String) -> Unit,
+    onSessionDeleted: (String) -> Unit,
     onCreateSession: () -> Unit,
     onSystemPromptSelected: (String) -> Unit,
+    onContextCompressionToggled: (Boolean) -> Unit,
     onConsumeError: () -> Unit
 ) {
     var showSessionsSheet by rememberSaveable { mutableStateOf(false) }
@@ -191,8 +196,11 @@ private fun ChatScreen(
                 isSending = state.isSending,
                 showSystemPromptPresets = state.messages.isEmpty() && !state.isSending,
                 selectedSystemPrompt = state.activeSessionSystemPrompt,
+                isContextCompressionEnabled = state.activeSessionContextCompressionEnabled,
+                isContextSummarizationInProgress = state.isActiveSessionContextSummarizationInProgress,
                 onValueChanged = onInputChanged,
                 onSystemPromptSelected = onSystemPromptSelected,
+                onContextCompressionToggled = onContextCompressionToggled,
                 onSendClick = onSendClick
             )
         }
@@ -239,6 +247,7 @@ private fun ChatScreen(
                 onSessionSelected(sessionId)
                 showSessionsSheet = false
             },
+            onDeleteSession = onSessionDeleted,
             onCreateNewSession = {
                 onCreateSession()
                 showSessionsSheet = false
@@ -378,8 +387,11 @@ private fun MessageInputBar(
     isSending: Boolean,
     showSystemPromptPresets: Boolean,
     selectedSystemPrompt: String?,
+    isContextCompressionEnabled: Boolean,
+    isContextSummarizationInProgress: Boolean,
     onValueChanged: (String) -> Unit,
     onSystemPromptSelected: (String) -> Unit,
+    onContextCompressionToggled: (Boolean) -> Unit,
     onSendClick: () -> Unit
 ) {
     Surface(tonalElevation = 2.dp) {
@@ -392,6 +404,8 @@ private fun MessageInputBar(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (showSystemPromptPresets) {
+                Text(text = "System prompt")
+
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(horizontal = 4.dp)
@@ -408,6 +422,38 @@ private fun MessageInputBar(
                             }
                         )
                     }
+                }
+
+                Text(
+                    text = "Сжатие контекста",
+                    modifier = Modifier.padding(top = 5.dp)
+                )
+
+                FilterChip(
+                    selected = isContextCompressionEnabled,
+                    onClick = {
+                        onContextCompressionToggled(!isContextCompressionEnabled)
+                    },
+                    label = {
+                        Text(text = "Контекст: summary + последние 10")
+                    }
+                )
+            }
+
+            if (isContextSummarizationInProgress) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Text(
+                        text = "Суммаризация контекста...",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -427,6 +473,12 @@ private fun MessageInputBar(
                     },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences
+                    ),
+                    colors = androidx.compose.material3.TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        errorIndicatorColor = Color.Transparent
                     )
                 )
 
@@ -534,11 +586,15 @@ private fun ChatScreenPreview() {
                             id = "preview-session",
                             title = "Preview chat",
                             updatedAt = System.currentTimeMillis(),
-                            systemPrompt = null
+                            systemPrompt = null,
+                            contextCompressionEnabled = true,
+                            isContextSummarizationInProgress = true
                         )
                     ),
                     activeSessionId = "preview-session",
                     activeSessionTitle = "Preview chat",
+                    activeSessionContextCompressionEnabled = true,
+                    isActiveSessionContextSummarizationInProgress = true,
                     messages = listOf(
                         ChatMessageUi(
                             stableId = "preview-user-1",
@@ -582,8 +638,10 @@ private fun ChatScreenPreview() {
                 onInputChanged = {},
                 onSendClick = {},
                 onSessionSelected = {},
+                onSessionDeleted = {},
                 onCreateSession = {},
                 onSystemPromptSelected = {},
+                onContextCompressionToggled = {},
                 onConsumeError = {}
             )
         }
