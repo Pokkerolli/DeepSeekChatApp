@@ -35,7 +35,7 @@ interface SessionDao {
     @Query(
         """
         UPDATE chat_sessions
-        SET contextCompressionEnabled = :enabled,
+        SET contextWindowMode = :contextWindowMode,
             contextSummary = :contextSummary,
             summarizedMessagesCount = :summarizedMessagesCount,
             isContextSummarizationInProgress = 0,
@@ -43,9 +43,9 @@ interface SessionDao {
         WHERE id = :sessionId
         """
     )
-    suspend fun updateContextCompression(
+    suspend fun updateContextWindowMode(
         sessionId: String,
-        enabled: Boolean,
+        contextWindowMode: String,
         contextSummary: String?,
         summarizedMessagesCount: Int,
         updatedAt: Long

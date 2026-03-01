@@ -19,7 +19,7 @@ import com.example.deepseekchat.domain.usecase.ObserveMessagesUseCase
 import com.example.deepseekchat.domain.usecase.ObserveSessionsUseCase
 import com.example.deepseekchat.domain.usecase.RunContextSummarizationIfNeededUseCase
 import com.example.deepseekchat.domain.usecase.SendMessageUseCase
-import com.example.deepseekchat.domain.usecase.SetSessionContextCompressionEnabledUseCase
+import com.example.deepseekchat.domain.usecase.SetSessionContextWindowModeUseCase
 import com.example.deepseekchat.domain.usecase.SetSessionSystemPromptUseCase
 import com.example.deepseekchat.domain.usecase.SetActiveSessionUseCase
 import com.example.deepseekchat.presentation.chat.ChatViewModel
@@ -42,7 +42,9 @@ val databaseModule = module {
                 MIGRATION_3_4,
                 MIGRATION_4_5,
                 MIGRATION_5_6,
-                MIGRATION_6_7
+                MIGRATION_6_7,
+                MIGRATION_7_8,
+                MIGRATION_8_9
             )
             .fallbackToDestructiveMigration()
             .build()
@@ -64,7 +66,7 @@ val networkModule = module {
     single {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BASIC
+                HttpLoggingInterceptor.Level.BODY
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }
@@ -126,7 +128,7 @@ val useCaseModule = module {
     factory { DeleteSessionUseCase(get()) }
     factory { SetActiveSessionUseCase(get()) }
     factory { SetSessionSystemPromptUseCase(get()) }
-    factory { SetSessionContextCompressionEnabledUseCase(get()) }
+    factory { SetSessionContextWindowModeUseCase(get()) }
     factory { RunContextSummarizationIfNeededUseCase(get()) }
     factory { GetActiveSessionUseCase(get()) }
 }
@@ -141,7 +143,7 @@ val viewModelModule = module {
             deleteSessionUseCase = get(),
             setActiveSessionUseCase = get(),
             setSessionSystemPromptUseCase = get(),
-            setSessionContextCompressionEnabledUseCase = get(),
+            setSessionContextWindowModeUseCase = get(),
             runContextSummarizationIfNeededUseCase = get(),
             getActiveSessionUseCase = get()
         )
@@ -202,5 +204,70 @@ private val MIGRATION_6_7 = object : Migration(6, 7) {
             "ALTER TABLE chat_sessions " +
                 "ADD COLUMN isContextSummarizationInProgress INTEGER NOT NULL DEFAULT 0"
         )
+    }
+}
+
+private val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE chat_sessions " +
+                "ADD COLUMN contextWindowMode TEXT NOT NULL DEFAULT 'FULL_HISTORY'"
+        )
+        db.execSQL(
+            "UPDATE chat_sessions " +
+                "SET contextWindowMode = 'SUMMARY_PLUS_LAST_10' " +
+                "WHERE contextCompressionEnabled = 1"
+        )
+    }
+}
+
+private val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS chat_sessions_new (
+                id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                systemPrompt TEXT,
+                contextWindowMode TEXT NOT NULL DEFAULT 'FULL_HISTORY',
+                contextSummary TEXT,
+                summarizedMessagesCount INTEGER NOT NULL DEFAULT 0,
+                isContextSummarizationInProgress INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(id)
+            )
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            INSERT INTO chat_sessions_new (
+                id,
+                title,
+                createdAt,
+                updatedAt,
+                systemPrompt,
+                contextWindowMode,
+                contextSummary,
+                summarizedMessagesCount,
+                isContextSummarizationInProgress
+            )
+            SELECT
+                id,
+                title,
+                createdAt,
+                updatedAt,
+                systemPrompt,
+                contextWindowMode,
+                contextSummary,
+                summarizedMessagesCount,
+                isContextSummarizationInProgress
+            FROM chat_sessions
+            """.trimIndent()
+        )
+
+        db.execSQL("DROP TABLE chat_sessions")
+        db.execSQL("ALTER TABLE chat_sessions_new RENAME TO chat_sessions")
     }
 }

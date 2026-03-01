@@ -1,4 +1,5 @@
 package com.example.deepseekchat.data.repository
+import android.util.Log
 import androidx.room.withTransaction
 import com.example.deepseekchat.data.local.dao.MessageDao
 import com.example.deepseekchat.data.local.dao.SessionDao
@@ -17,6 +18,7 @@ import com.example.deepseekchat.data.remote.stream.SseStreamEvent
 import com.example.deepseekchat.data.remote.stream.SseStreamParser
 import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
+import com.example.deepseekchat.domain.model.ContextWindowMode
 import com.example.deepseekchat.domain.model.MessageRole
 import com.example.deepseekchat.domain.repository.ChatRepository
 import java.util.concurrent.ConcurrentHashMap
@@ -104,7 +106,7 @@ class ChatRepositoryImpl(
         )
     }
 
-    override suspend fun setSessionContextCompressionEnabled(sessionId: String, enabled: Boolean) {
+    override suspend fun setSessionContextWindowMode(sessionId: String, mode: ContextWindowMode) {
         val now = System.currentTimeMillis()
         if (messageDao.getMessagesOnce(sessionId).isNotEmpty()) return
 
@@ -117,7 +119,7 @@ class ChatRepositoryImpl(
                     title = DEFAULT_SESSION_TITLE,
                     createdAt = now,
                     updatedAt = now,
-                    contextCompressionEnabled = enabled,
+                    contextWindowMode = mode.name,
                     contextSummary = null,
                     summarizedMessagesCount = 0
                 )
@@ -125,9 +127,9 @@ class ChatRepositoryImpl(
             return
         }
 
-        sessionDao.updateContextCompression(
+        sessionDao.updateContextWindowMode(
             sessionId = sessionId,
-            enabled = enabled,
+            contextWindowMode = mode.name,
             contextSummary = null,
             summarizedMessagesCount = 0,
             updatedAt = now
@@ -209,6 +211,7 @@ class ChatRepositoryImpl(
                 stream = true,
                 streamOptions = StreamOptions(includeUsage = true)
             )
+            Log.i("FUCK", "$requestMessages")
             val response = deepSeekApi.streamChatCompletions(request)
             val responseBody = response.body()
 
@@ -276,7 +279,32 @@ class ChatRepositoryImpl(
         session: SessionEntity,
         allMessages: List<MessageEntity>
     ): List<ChatCompletionMessage> {
-        if (!session.contextCompressionEnabled || allMessages.size <= CONTEXT_TAIL_MESSAGES_COUNT) {
+        val contextMode = ContextWindowMode.fromStored(session.contextWindowMode)
+        if (allMessages.isEmpty()) return emptyList()
+
+        return when (contextMode) {
+            ContextWindowMode.FULL_HISTORY -> allMessages.toApiMessages()
+            ContextWindowMode.SLIDING_WINDOW_LAST_10 -> {
+                val currentRequest = allMessages.last()
+                val recentHistory = allMessages
+                    .dropLast(1)
+                    .takeLast(CONTEXT_TAIL_MESSAGES_COUNT)
+                (recentHistory + currentRequest).toApiMessages()
+            }
+            ContextWindowMode.SUMMARY_PLUS_LAST_10 -> buildSummaryPlusTailContextMessages(
+                sessionId = sessionId,
+                session = session,
+                allMessages = allMessages
+            )
+        }
+    }
+
+    private suspend fun buildSummaryPlusTailContextMessages(
+        sessionId: String,
+        session: SessionEntity,
+        allMessages: List<MessageEntity>
+    ): List<ChatCompletionMessage> {
+        if (allMessages.size <= CONTEXT_TAIL_MESSAGES_COUNT) {
             return allMessages.toApiMessages()
         }
 
@@ -327,7 +355,12 @@ class ChatRepositoryImpl(
         try {
             while (true) {
                 val session = sessionDao.getSessionById(sessionId) ?: return
-                if (!session.contextCompressionEnabled) return
+                if (
+                    ContextWindowMode.fromStored(session.contextWindowMode) !=
+                    ContextWindowMode.SUMMARY_PLUS_LAST_10
+                ) {
+                    return
+                }
 
                 val allMessages = messageDao.getMessagesOnce(sessionId)
                 if (allMessages.size <= CONTEXT_TAIL_MESSAGES_COUNT) return

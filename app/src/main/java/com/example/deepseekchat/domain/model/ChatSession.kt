@@ -6,7 +6,7 @@ data class ChatSession(
     val createdAt: Long,
     val updatedAt: Long,
     val systemPrompt: String?,
-    val contextCompressionEnabled: Boolean,
+    val contextWindowMode: ContextWindowMode,
     val contextSummary: String?,
     val summarizedMessagesCount: Int,
     val isContextSummarizationInProgress: Boolean

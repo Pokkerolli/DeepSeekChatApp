@@ -2,6 +2,7 @@ package com.example.deepseekchat.domain.repository
 
 import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
+import com.example.deepseekchat.domain.model.ContextWindowMode
 import kotlinx.coroutines.flow.Flow
 
 interface ChatRepository {
@@ -11,7 +12,7 @@ interface ChatRepository {
     suspend fun deleteSession(sessionId: String)
     suspend fun setActiveSession(sessionId: String)
     suspend fun setSessionSystemPrompt(sessionId: String, systemPrompt: String?)
-    suspend fun setSessionContextCompressionEnabled(sessionId: String, enabled: Boolean)
+    suspend fun setSessionContextWindowMode(sessionId: String, mode: ContextWindowMode)
     suspend fun runContextSummarizationIfNeeded(sessionId: String)
     fun observeActiveSessionId(): Flow<String?>
     fun sendMessageStreaming(sessionId: String, content: String): Flow<String>

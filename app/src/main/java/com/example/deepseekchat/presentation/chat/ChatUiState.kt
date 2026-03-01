@@ -1,13 +1,14 @@
 package com.example.deepseekchat.presentation.chat
 
 import com.example.deepseekchat.domain.model.MessageRole
+import com.example.deepseekchat.domain.model.ContextWindowMode
 
 data class ChatSessionUi(
     val id: String,
     val title: String,
     val updatedAt: Long,
     val systemPrompt: String?,
-    val contextCompressionEnabled: Boolean,
+    val contextWindowMode: ContextWindowMode,
     val isContextSummarizationInProgress: Boolean
 )
 
@@ -38,7 +39,7 @@ data class ChatUiState(
     val activeSessionId: String? = null,
     val activeSessionTitle: String = "New chat",
     val activeSessionSystemPrompt: String? = null,
-    val activeSessionContextCompressionEnabled: Boolean = false,
+    val activeSessionContextWindowMode: ContextWindowMode = ContextWindowMode.FULL_HISTORY,
     val isActiveSessionContextSummarizationInProgress: Boolean = false,
     val messages: List<ChatMessageUi> = emptyList(),
     val input: String = "",

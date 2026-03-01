@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
+import com.example.deepseekchat.domain.model.ContextWindowMode
 import com.example.deepseekchat.domain.model.MessageRole
 import com.example.deepseekchat.domain.usecase.CreateSessionUseCase
 import com.example.deepseekchat.domain.usecase.DeleteSessionUseCase
@@ -13,7 +14,7 @@ import com.example.deepseekchat.domain.usecase.ObserveSessionsUseCase
 import com.example.deepseekchat.domain.usecase.RunContextSummarizationIfNeededUseCase
 import com.example.deepseekchat.domain.usecase.SendMessageUseCase
 import com.example.deepseekchat.domain.usecase.SetActiveSessionUseCase
-import com.example.deepseekchat.domain.usecase.SetSessionContextCompressionEnabledUseCase
+import com.example.deepseekchat.domain.usecase.SetSessionContextWindowModeUseCase
 import com.example.deepseekchat.domain.usecase.SetSessionSystemPromptUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -33,7 +34,7 @@ class ChatViewModel(
     private val deleteSessionUseCase: DeleteSessionUseCase,
     private val setActiveSessionUseCase: SetActiveSessionUseCase,
     private val setSessionSystemPromptUseCase: SetSessionSystemPromptUseCase,
-    private val setSessionContextCompressionEnabledUseCase: SetSessionContextCompressionEnabledUseCase,
+    private val setSessionContextWindowModeUseCase: SetSessionContextWindowModeUseCase,
     private val runContextSummarizationIfNeededUseCase: RunContextSummarizationIfNeededUseCase,
     private val getActiveSessionUseCase: GetActiveSessionUseCase
 ) : ViewModel() {
@@ -186,15 +187,15 @@ class ChatViewModel(
         }
     }
 
-    fun onContextCompressionToggled(enabled: Boolean) {
+    fun onContextWindowModeSelected(mode: ContextWindowMode) {
         val state = _uiState.value
         val sessionId = state.activeSessionId ?: return
         if (state.messages.isNotEmpty() || state.isSending) return
-        if (state.activeSessionContextCompressionEnabled == enabled) return
+        if (state.activeSessionContextWindowMode == mode) return
 
-        _uiState.update { it.copy(activeSessionContextCompressionEnabled = enabled) }
+        _uiState.update { it.copy(activeSessionContextWindowMode = mode) }
         viewModelScope.launch {
-            setSessionContextCompressionEnabledUseCase(sessionId, enabled)
+            setSessionContextWindowModeUseCase(sessionId, mode)
         }
     }
 
@@ -286,15 +287,15 @@ class ChatViewModel(
                         title = it.title,
                         updatedAt = it.updatedAt,
                         systemPrompt = it.systemPrompt,
-                        contextCompressionEnabled = it.contextCompressionEnabled,
+                        contextWindowMode = it.contextWindowMode,
                         isContextSummarizationInProgress = it.isContextSummarizationInProgress
                     )
                 },
                 activeSessionId = selectedSession?.id,
                 activeSessionTitle = selectedSession?.title ?: "New chat",
                 activeSessionSystemPrompt = selectedSession?.systemPrompt,
-                activeSessionContextCompressionEnabled =
-                    selectedSession?.contextCompressionEnabled ?: false,
+                activeSessionContextWindowMode =
+                    selectedSession?.contextWindowMode ?: ContextWindowMode.FULL_HISTORY,
                 isActiveSessionContextSummarizationInProgress =
                     selectedSession?.isContextSummarizationInProgress ?: false
             )

@@ -4,6 +4,7 @@ import com.example.deepseekchat.data.local.entity.MessageEntity
 import com.example.deepseekchat.data.local.entity.SessionEntity
 import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
+import com.example.deepseekchat.domain.model.ContextWindowMode
 import com.example.deepseekchat.domain.model.MessageRole
 
 fun SessionEntity.toDomain(): ChatSession {
@@ -13,7 +14,7 @@ fun SessionEntity.toDomain(): ChatSession {
         createdAt = createdAt,
         updatedAt = updatedAt,
         systemPrompt = systemPrompt,
-        contextCompressionEnabled = contextCompressionEnabled,
+        contextWindowMode = ContextWindowMode.fromStored(contextWindowMode),
         contextSummary = contextSummary,
         summarizedMessagesCount = summarizedMessagesCount,
         isContextSummarizationInProgress = isContextSummarizationInProgress

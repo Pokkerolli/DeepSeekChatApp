@@ -10,7 +10,7 @@ data class SessionEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val systemPrompt: String? = null,
-    val contextCompressionEnabled: Boolean = false,
+    val contextWindowMode: String = "FULL_HISTORY",
     val contextSummary: String? = null,
     val summarizedMessagesCount: Int = 0,
     val isContextSummarizationInProgress: Boolean = false

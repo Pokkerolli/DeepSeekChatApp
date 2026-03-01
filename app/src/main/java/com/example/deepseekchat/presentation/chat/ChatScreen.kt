@@ -60,6 +60,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.deepseekchat.domain.model.ContextWindowMode
 import com.example.deepseekchat.domain.model.MessageRole
 import com.example.deepseekchat.presentation.theme.DeepSeekChatTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -79,7 +80,7 @@ fun ChatRoute(
         onSessionDeleted = viewModel::onDeleteSession,
         onCreateSession = viewModel::onCreateNewSession,
         onSystemPromptSelected = viewModel::onSystemPromptSelected,
-        onContextCompressionToggled = viewModel::onContextCompressionToggled,
+        onContextWindowModeSelected = viewModel::onContextWindowModeSelected,
         onConsumeError = viewModel::consumeError
     )
 }
@@ -94,7 +95,7 @@ private fun ChatScreen(
     onSessionDeleted: (String) -> Unit,
     onCreateSession: () -> Unit,
     onSystemPromptSelected: (String) -> Unit,
-    onContextCompressionToggled: (Boolean) -> Unit,
+    onContextWindowModeSelected: (ContextWindowMode) -> Unit,
     onConsumeError: () -> Unit
 ) {
     var showSessionsSheet by rememberSaveable { mutableStateOf(false) }
@@ -196,11 +197,11 @@ private fun ChatScreen(
                 isSending = state.isSending,
                 showSystemPromptPresets = state.messages.isEmpty() && !state.isSending,
                 selectedSystemPrompt = state.activeSessionSystemPrompt,
-                isContextCompressionEnabled = state.activeSessionContextCompressionEnabled,
+                selectedContextWindowMode = state.activeSessionContextWindowMode,
                 isContextSummarizationInProgress = state.isActiveSessionContextSummarizationInProgress,
                 onValueChanged = onInputChanged,
                 onSystemPromptSelected = onSystemPromptSelected,
-                onContextCompressionToggled = onContextCompressionToggled,
+                onContextWindowModeSelected = onContextWindowModeSelected,
                 onSendClick = onSendClick
             )
         }
@@ -387,11 +388,11 @@ private fun MessageInputBar(
     isSending: Boolean,
     showSystemPromptPresets: Boolean,
     selectedSystemPrompt: String?,
-    isContextCompressionEnabled: Boolean,
+    selectedContextWindowMode: ContextWindowMode,
     isContextSummarizationInProgress: Boolean,
     onValueChanged: (String) -> Unit,
     onSystemPromptSelected: (String) -> Unit,
-    onContextCompressionToggled: (Boolean) -> Unit,
+    onContextWindowModeSelected: (ContextWindowMode) -> Unit,
     onSendClick: () -> Unit
 ) {
     Surface(tonalElevation = 2.dp) {
@@ -429,15 +430,31 @@ private fun MessageInputBar(
                     modifier = Modifier.padding(top = 5.dp)
                 )
 
-                FilterChip(
-                    selected = isContextCompressionEnabled,
-                    onClick = {
-                        onContextCompressionToggled(!isContextCompressionEnabled)
-                    },
-                    label = {
-                        Text(text = "Контекст: summary + последние 10")
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    items(
+                        items = CONTEXT_WINDOW_MODE_OPTIONS,
+                        key = { it.mode.name }
+                    ) { option ->
+                        val isSelected = selectedContextWindowMode == option.mode
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                val nextMode = if (isSelected) {
+                                    ContextWindowMode.FULL_HISTORY
+                                } else {
+                                    option.mode
+                                }
+                                onContextWindowModeSelected(nextMode)
+                            },
+                            label = {
+                                Text(text = option.label)
+                            }
+                        )
                     }
-                )
+                }
             }
 
             if (isContextSummarizationInProgress) {
@@ -541,6 +558,22 @@ private data class SystemPromptPreset(
     val prompt: String
 )
 
+private data class ContextWindowModeOption(
+    val mode: ContextWindowMode,
+    val label: String
+)
+
+private val CONTEXT_WINDOW_MODE_OPTIONS = listOf(
+    ContextWindowModeOption(
+        mode = ContextWindowMode.SUMMARY_PLUS_LAST_10,
+        label = "Summary + последние 10"
+    ),
+    ContextWindowModeOption(
+        mode = ContextWindowMode.SLIDING_WINDOW_LAST_10,
+        label = "Sliding Window (10 последних)"
+    )
+)
+
 private val SYSTEM_PROMPT_PRESETS = listOf(
     SystemPromptPreset(
         label = "Лаконичные ответы",
@@ -587,13 +620,13 @@ private fun ChatScreenPreview() {
                             title = "Preview chat",
                             updatedAt = System.currentTimeMillis(),
                             systemPrompt = null,
-                            contextCompressionEnabled = true,
+                            contextWindowMode = ContextWindowMode.SUMMARY_PLUS_LAST_10,
                             isContextSummarizationInProgress = true
                         )
                     ),
                     activeSessionId = "preview-session",
                     activeSessionTitle = "Preview chat",
-                    activeSessionContextCompressionEnabled = true,
+                    activeSessionContextWindowMode = ContextWindowMode.SUMMARY_PLUS_LAST_10,
                     isActiveSessionContextSummarizationInProgress = true,
                     messages = listOf(
                         ChatMessageUi(
@@ -641,7 +674,7 @@ private fun ChatScreenPreview() {
                 onSessionDeleted = {},
                 onCreateSession = {},
                 onSystemPromptSelected = {},
-                onContextCompressionToggled = {},
+                onContextWindowModeSelected = {},
                 onConsumeError = {}
             )
         }
