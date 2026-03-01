@@ -1,0 +1,354 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:2:1-20:12
+INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:2:1-20:12
+INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:2:1-20:12
+INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:2:1-20:12
+MERGED from [:shared] /Users/pokkerolli/Documents/codex/DeepSeekChatApp/shared/build/intermediates/merged_manifest/androidMain/processAndroidMainManifest/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-runtime-android:2.9.7] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/2c3faeeb28a725bea212d69e32826e7e/transformed/navigation-runtime-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-common-android:2.9.7] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/fd6c96c36e7a722508c2208553f3d538/transformed/navigation-common-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-compose-android:2.9.7] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1c6ae758cc82b1127dbf6d367cd89a4a/transformed/navigation-compose-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity:1.10.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/07cd9095b8b36ab7d1d5aca32615e8c4/transformed/activity-1.10.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.material:material-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/79d86fa1c0174e89100f539f91eedd59/transformed/material/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-core-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/18fcbb68e1796a63d353c926edc30cec/transformed/animation-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e8f75f8f62a10b9448db7f1bda61a620/transformed/material-ripple/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/2697bd12d00173d9e3a984e7b875eef9/transformed/animation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/fe97dc04c86dd6749bda05f8ada2e1dd/transformed/foundation-layout/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/3ca035af34519b5c811d00a184a5108c/transformed/foundation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/8a7d7352a8c1ca43b6afcd2579d073be/transformed/ui-util/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/da06f787daee31463b6fb2afc03aa3aa/transformed/ui-unit/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1c9a81dd3c7269fbdc8505d071a465d8/transformed/ui-text/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/f3aa8cc70f217ff512e8b768fa2ed97c/transformed/ui-graphics/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/9dc8d418f370760a468420e37bd3bc8c/transformed/ui-geometry/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/7cceb2e767c85144e81917e8e732e926/transformed/runtime-annotation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/6afb9196ec5271494eea23fd3b8a4c7e/transformed/runtime-retain/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/bc034bc4f05fdb62844b6b8ab4174c94/transformed/autofill-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.transition:transition:1.6.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/cefd10635defb54475acaa7c926dbb8b/transformed/transition-1.6.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.window:window-core-android:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/cbf6744b1fed18937d293ae550d33595/transformed/window-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/c42a4e26a1a17b09ca9bbbf7ea6d21cd/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.3.3] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d759ad9da916e913d0ae71559bb7c5e2/transformed/savedstate-ktx-1.3.3/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.savedstate:savedstate-compose-android:1.3.3] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/128f1f5b7d421db1dc8874f5d6c7fda3/transformed/savedstate-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d556267a10f529f4a200b3c1cefddd75/transformed/dynamicanimation-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/c08efa919cf9bfeabec61d89b218a4ca/transformed/legacy-support-core-utils-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.loader:loader:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/404a74818b61a466d8856f058e796b32/transformed/loader-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/a7c9dec5a110bee42f6a7bb60e8ac35c/transformed/lifecycle-livedata-core-ktx-2.9.4/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/67e1f8c9689b15e6f8aae628a31b3457/transformed/lifecycle-livedata-2.9.4/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/7a1b3c28aa7167e967a1a2a1027549cf/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/db79efaee43d3b5630fb957b786d55a6/transformed/lifecycle-livedata-core-2.9.4/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/8e023d1c26e4e83776e5e638dd4c961f/transformed/lifecycle-viewmodel-ktx-2.9.4/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/bbc0bc19f92a70ce52ababc7f8005b67/transformed/lifecycle-viewmodel-2.9.4/AndroidManifest.xml:2:1-5:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/43bfa56dd2c7de8486f0d30ae9f025b6/transformed/lifecycle-viewmodel-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/b132afc9f82e70eff5b6b7a0d0317e6e/transformed/lifecycle-viewmodel-savedstate-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate-android:1.3.3] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/def854a1414e049b7fd2b05056ba97d6/transformed/savedstate-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core-ktx:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/66b3d0fc0731fb045d23c90ac847d7a7/transformed/core-ktx-1.16.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/c383269bb3e729fc5294218e6bd107b5/transformed/graphics-path-1.0.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/39babd1ca3a2a8a4512d7bffdf450750/transformed/lifecycle-runtime-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d63dc33ce7b37aedbacbd9b201867f92/transformed/lifecycle-runtime-compose-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/781c1b8e41b5914cf1f794ed90ba8be2/transformed/runtime/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1c9849165c88c80cdbf1aea97c0d1143/transformed/runtime-saveable/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/a8359d65a94632add926fc464eb8b113/transformed/lifecycle-viewmodel-compose-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1fc692b75034ac62b8eec851c55895f6/transformed/ui/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-ktx:1.10.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/f9f50a62ec49248f763d067949162b1c/transformed/activity-ktx-1.10.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-compose:1.10.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/4400eff54330aa0045563a3b79740d72/transformed/activity-compose-1.10.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/98c9e6f0bd7595518b0850feb704a1c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2217b610cf1c170ceee8a04f525f5d5/transformed/startup-runtime-1.1.1/AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.2.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/acdc11cc0cb3cb8fe5890a6258c9d650/transformed/tracing-1.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/0d055e94dcf1f812f4bd0e8db899baa3/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2a17aaf7b6cff7c049959fc8ff7fd24/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.documentfile:documentfile:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/2ed23b4fd7f98fed2b21ce395d4d69d9/transformed/documentfile-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1a3c72253d7c724b2bbc7f884c48bbb8/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.print:print:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d34f03a74843a7565eea00cec5de76fc/transformed/print-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core-viewtree:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/006d442dc10c84c330e494821e6114b6/transformed/core-viewtree-1.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/13f9959dbed19281583f2c6a1490fcf6/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:2:1-7:12
+	package
+		INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml
+	android:versionCode
+		INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:2:11-69
+application
+ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:4:5-18:19
+INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:4:5-18:19
+MERGED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
+MERGED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/98c9e6f0bd7595518b0850feb704a1c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/98c9e6f0bd7595518b0850feb704a1c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2217b610cf1c170ceee8a04f525f5d5/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2217b610cf1c170ceee8a04f525f5d5/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+	android:extractNativeLibs
+		INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:8:9-35
+	android:label
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:7:9-41
+	android:icon
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:6:9-58
+	android:allowBackup
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:5:9-35
+	android:theme
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:9:9-72
+activity#com.example.deepseekchat.android.MainActivity
+ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:10:9-17:20
+	android:exported
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:12:13-36
+	android:name
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:11:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:13:13-16:29
+action#android.intent.action.MAIN
+ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:14:17-69
+	android:name
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:14:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:15:17-77
+	android:name
+		ADDED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml:15:27-74
+uses-sdk
+INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml
+INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml
+MERGED from [:shared] /Users/pokkerolli/Documents/codex/DeepSeekChatApp/shared/build/intermediates/merged_manifest/androidMain/processAndroidMainManifest/AndroidManifest.xml:5:5-44
+MERGED from [:shared] /Users/pokkerolli/Documents/codex/DeepSeekChatApp/shared/build/intermediates/merged_manifest/androidMain/processAndroidMainManifest/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-runtime-android:2.9.7] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/2c3faeeb28a725bea212d69e32826e7e/transformed/navigation-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime-android:2.9.7] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/2c3faeeb28a725bea212d69e32826e7e/transformed/navigation-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-android:2.9.7] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/fd6c96c36e7a722508c2208553f3d538/transformed/navigation-common-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-android:2.9.7] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/fd6c96c36e7a722508c2208553f3d538/transformed/navigation-common-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-compose-android:2.9.7] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1c6ae758cc82b1127dbf6d367cd89a4a/transformed/navigation-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose-android:2.9.7] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1c6ae758cc82b1127dbf6d367cd89a4a/transformed/navigation-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity:1.10.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/07cd9095b8b36ab7d1d5aca32615e8c4/transformed/activity-1.10.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.10.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/07cd9095b8b36ab7d1d5aca32615e8c4/transformed/activity-1.10.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material:material-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/79d86fa1c0174e89100f539f91eedd59/transformed/material/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/79d86fa1c0174e89100f539f91eedd59/transformed/material/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/18fcbb68e1796a63d353c926edc30cec/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/18fcbb68e1796a63d353c926edc30cec/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e8f75f8f62a10b9448db7f1bda61a620/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e8f75f8f62a10b9448db7f1bda61a620/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/2697bd12d00173d9e3a984e7b875eef9/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/2697bd12d00173d9e3a984e7b875eef9/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/fe97dc04c86dd6749bda05f8ada2e1dd/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/fe97dc04c86dd6749bda05f8ada2e1dd/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/3ca035af34519b5c811d00a184a5108c/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/3ca035af34519b5c811d00a184a5108c/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/8a7d7352a8c1ca43b6afcd2579d073be/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/8a7d7352a8c1ca43b6afcd2579d073be/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/da06f787daee31463b6fb2afc03aa3aa/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/da06f787daee31463b6fb2afc03aa3aa/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1c9a81dd3c7269fbdc8505d071a465d8/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1c9a81dd3c7269fbdc8505d071a465d8/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/f3aa8cc70f217ff512e8b768fa2ed97c/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/f3aa8cc70f217ff512e8b768fa2ed97c/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/9dc8d418f370760a468420e37bd3bc8c/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/9dc8d418f370760a468420e37bd3bc8c/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/7cceb2e767c85144e81917e8e732e926/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/7cceb2e767c85144e81917e8e732e926/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/6afb9196ec5271494eea23fd3b8a4c7e/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/6afb9196ec5271494eea23fd3b8a4c7e/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/bc034bc4f05fdb62844b6b8ab4174c94/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/bc034bc4f05fdb62844b6b8ab4174c94/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.6.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/cefd10635defb54475acaa7c926dbb8b/transformed/transition-1.6.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.transition:transition:1.6.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/cefd10635defb54475acaa7c926dbb8b/transformed/transition-1.6.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window-core-android:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/cbf6744b1fed18937d293ae550d33595/transformed/window-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window-core-android:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/cbf6744b1fed18937d293ae550d33595/transformed/window-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/c42a4e26a1a17b09ca9bbbf7ea6d21cd/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/c42a4e26a1a17b09ca9bbbf7ea6d21cd/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.savedstate:savedstate-ktx:1.3.3] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d759ad9da916e913d0ae71559bb7c5e2/transformed/savedstate-ktx-1.3.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.3.3] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d759ad9da916e913d0ae71559bb7c5e2/transformed/savedstate-ktx-1.3.3/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-compose-android:1.3.3] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/128f1f5b7d421db1dc8874f5d6c7fda3/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-compose-android:1.3.3] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/128f1f5b7d421db1dc8874f5d6c7fda3/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d556267a10f529f4a200b3c1cefddd75/transformed/dynamicanimation-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d556267a10f529f4a200b3c1cefddd75/transformed/dynamicanimation-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/c08efa919cf9bfeabec61d89b218a4ca/transformed/legacy-support-core-utils-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/c08efa919cf9bfeabec61d89b218a4ca/transformed/legacy-support-core-utils-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/404a74818b61a466d8856f058e796b32/transformed/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/404a74818b61a466d8856f058e796b32/transformed/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/a7c9dec5a110bee42f6a7bb60e8ac35c/transformed/lifecycle-livedata-core-ktx-2.9.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/a7c9dec5a110bee42f6a7bb60e8ac35c/transformed/lifecycle-livedata-core-ktx-2.9.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/67e1f8c9689b15e6f8aae628a31b3457/transformed/lifecycle-livedata-2.9.4/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/67e1f8c9689b15e6f8aae628a31b3457/transformed/lifecycle-livedata-2.9.4/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/7a1b3c28aa7167e967a1a2a1027549cf/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/7a1b3c28aa7167e967a1a2a1027549cf/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/db79efaee43d3b5630fb957b786d55a6/transformed/lifecycle-livedata-core-2.9.4/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/db79efaee43d3b5630fb957b786d55a6/transformed/lifecycle-livedata-core-2.9.4/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/8e023d1c26e4e83776e5e638dd4c961f/transformed/lifecycle-viewmodel-ktx-2.9.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/8e023d1c26e4e83776e5e638dd4c961f/transformed/lifecycle-viewmodel-ktx-2.9.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/bbc0bc19f92a70ce52ababc7f8005b67/transformed/lifecycle-viewmodel-2.9.4/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/bbc0bc19f92a70ce52ababc7f8005b67/transformed/lifecycle-viewmodel-2.9.4/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/43bfa56dd2c7de8486f0d30ae9f025b6/transformed/lifecycle-viewmodel-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/43bfa56dd2c7de8486f0d30ae9f025b6/transformed/lifecycle-viewmodel-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/b132afc9f82e70eff5b6b7a0d0317e6e/transformed/lifecycle-viewmodel-savedstate-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/b132afc9f82e70eff5b6b7a0d0317e6e/transformed/lifecycle-viewmodel-savedstate-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-android:1.3.3] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/def854a1414e049b7fd2b05056ba97d6/transformed/savedstate-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-android:1.3.3] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/def854a1414e049b7fd2b05056ba97d6/transformed/savedstate-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core-ktx:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/66b3d0fc0731fb045d23c90ac847d7a7/transformed/core-ktx-1.16.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/66b3d0fc0731fb045d23c90ac847d7a7/transformed/core-ktx-1.16.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/c383269bb3e729fc5294218e6bd107b5/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/c383269bb3e729fc5294218e6bd107b5/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/39babd1ca3a2a8a4512d7bffdf450750/transformed/lifecycle-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/39babd1ca3a2a8a4512d7bffdf450750/transformed/lifecycle-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d63dc33ce7b37aedbacbd9b201867f92/transformed/lifecycle-runtime-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d63dc33ce7b37aedbacbd9b201867f92/transformed/lifecycle-runtime-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/781c1b8e41b5914cf1f794ed90ba8be2/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/781c1b8e41b5914cf1f794ed90ba8be2/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1c9849165c88c80cdbf1aea97c0d1143/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1c9849165c88c80cdbf1aea97c0d1143/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/a8359d65a94632add926fc464eb8b113/transformed/lifecycle-viewmodel-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/a8359d65a94632add926fc464eb8b113/transformed/lifecycle-viewmodel-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1fc692b75034ac62b8eec851c55895f6/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.10.2] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1fc692b75034ac62b8eec851c55895f6/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.10.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/f9f50a62ec49248f763d067949162b1c/transformed/activity-ktx-1.10.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.10.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/f9f50a62ec49248f763d067949162b1c/transformed/activity-ktx-1.10.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.10.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/4400eff54330aa0045563a3b79740d72/transformed/activity-compose-1.10.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.10.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/4400eff54330aa0045563a3b79740d72/transformed/activity-compose-1.10.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/98c9e6f0bd7595518b0850feb704a1c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/98c9e6f0bd7595518b0850feb704a1c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2217b610cf1c170ceee8a04f525f5d5/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2217b610cf1c170ceee8a04f525f5d5/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.2.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/acdc11cc0cb3cb8fe5890a6258c9d650/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.tracing:tracing:1.2.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/acdc11cc0cb3cb8fe5890a6258c9d650/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/0d055e94dcf1f812f4bd0e8db899baa3/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/0d055e94dcf1f812f4bd0e8db899baa3/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2a17aaf7b6cff7c049959fc8ff7fd24/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2a17aaf7b6cff7c049959fc8ff7fd24/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/2ed23b4fd7f98fed2b21ce395d4d69d9/transformed/documentfile-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/2ed23b4fd7f98fed2b21ce395d4d69d9/transformed/documentfile-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1a3c72253d7c724b2bbc7f884c48bbb8/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/1a3c72253d7c724b2bbc7f884c48bbb8/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d34f03a74843a7565eea00cec5de76fc/transformed/print-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d34f03a74843a7565eea00cec5de76fc/transformed/print-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core-viewtree:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/006d442dc10c84c330e494821e6114b6/transformed/core-viewtree-1.0.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-viewtree:1.0.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/006d442dc10c84c330e494821e6114b6/transformed/core-viewtree-1.0.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/13f9959dbed19281583f2c6a1490fcf6/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/13f9959dbed19281583f2c6a1490fcf6/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+	android:targetSdkVersion
+		INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/pokkerolli/Documents/codex/DeepSeekChatApp/androidApp/src/main/AndroidManifest.xml
+uses-library#androidx.window.extensions
+ADDED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
+	android:required
+		ADDED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
+uses-library#androidx.window.sidecar
+ADDED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
+	android:required
+		ADDED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
+	android:name
+		ADDED from [androidx.window:window:1.5.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/e9bdbfd576273f855f5be921d371b460/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2217b610cf1c170ceee8a04f525f5d5/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/d2217b610cf1c170ceee8a04f525f5d5/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:25:13-67
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/ba2e0d0e6fdf89a0924585b3c6d63285/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.9.4] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/83b98947c277a405d07b830050ebae57/transformed/lifecycle-process-2.9.4/AndroidManifest.xml:30:17-78
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:23:9-81
+permission#com.example.deepseekchat.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:26:22-94
+uses-permission#com.example.deepseekchat.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.16.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/de6008c6d1c1272fb055e2adcbedc29e/transformed/core-1.16.0/AndroidManifest.xml:26:22-94
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pokkerolli/.gradle/caches/9.3.1/transforms/297f33dcf7e32ccd7229e05cc33ab3fc/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92

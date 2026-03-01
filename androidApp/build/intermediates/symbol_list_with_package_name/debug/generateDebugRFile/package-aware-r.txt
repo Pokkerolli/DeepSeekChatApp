@@ -1,0 +1,2 @@
+com.example.deepseekchat.android
+string app_name
