@@ -15,4 +15,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "DeepSeekChatApp"
-include(":app")
+include(":shared")
+include(":androidApp")
+include(":desktopApp")
