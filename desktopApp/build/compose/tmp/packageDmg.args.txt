@@ -1,0 +1,14 @@
+--app-image
+"/Users/pokkerolli/Documents/codex/DeepSeekChatApp/desktopApp/build/compose/binaries/main/app"
+--resource-dir
+"/Users/pokkerolli/Documents/codex/DeepSeekChatApp/desktopApp/build/compose/tmp/resources"
+--type
+"dmg"
+--dest
+"/Users/pokkerolli/Documents/codex/DeepSeekChatApp/desktopApp/build/compose/binaries/main/dmg"
+--name
+"DeepSeekChatApp"
+--app-version
+"1.0.0"
+--mac-entitlements
+"/Users/pokkerolli/Documents/codex/DeepSeekChatApp/desktopApp/build/compose/default-resources/1.10.1/default-entitlements.plist"
