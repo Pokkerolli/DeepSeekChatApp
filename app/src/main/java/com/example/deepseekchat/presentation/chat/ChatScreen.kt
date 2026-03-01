@@ -571,6 +571,10 @@ private val CONTEXT_WINDOW_MODE_OPTIONS = listOf(
     ContextWindowModeOption(
         mode = ContextWindowMode.SLIDING_WINDOW_LAST_10,
         label = "Sliding Window (10 последних)"
+    ),
+    ContextWindowModeOption(
+        mode = ContextWindowMode.STICKY_FACTS_KEY_VALUE,
+        label = "Sticky Facts/Key-Value Memory"
     )
 )
 

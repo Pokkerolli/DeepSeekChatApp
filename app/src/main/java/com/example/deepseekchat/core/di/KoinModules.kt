@@ -44,7 +44,8 @@ val databaseModule = module {
                 MIGRATION_5_6,
                 MIGRATION_6_7,
                 MIGRATION_7_8,
-                MIGRATION_8_9
+                MIGRATION_8_9,
+                MIGRATION_9_10
             )
             .fallbackToDestructiveMigration()
             .build()
@@ -66,7 +67,7 @@ val networkModule = module {
     single {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
+                HttpLoggingInterceptor.Level.BASIC
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }
@@ -269,5 +270,11 @@ private val MIGRATION_8_9 = object : Migration(8, 9) {
 
         db.execSQL("DROP TABLE chat_sessions")
         db.execSQL("ALTER TABLE chat_sessions_new RENAME TO chat_sessions")
+    }
+}
+
+private val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE chat_sessions ADD COLUMN stickyFactsJson TEXT")
     }
 }

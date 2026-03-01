@@ -11,6 +11,7 @@ data class SessionEntity(
     val updatedAt: Long,
     val systemPrompt: String? = null,
     val contextWindowMode: String = "FULL_HISTORY",
+    val stickyFactsJson: String? = null,
     val contextSummary: String? = null,
     val summarizedMessagesCount: Int = 0,
     val isContextSummarizationInProgress: Boolean = false

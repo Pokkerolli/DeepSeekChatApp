@@ -33,6 +33,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -186,6 +188,7 @@ class ChatRepositoryImpl(
             }
 
             val allMessages = messageDao.getMessagesOnce(sessionId)
+            val contextMode = ContextWindowMode.fromStored(sessionSnapshot.contextWindowMode)
             val contextMessages = buildUserRequestContextMessages(
                 sessionId = sessionId,
                 session = sessionSnapshot,
@@ -269,6 +272,30 @@ class ChatRepositoryImpl(
                 }
             }
 
+            if (
+                contextMode == ContextWindowMode.STICKY_FACTS_KEY_VALUE &&
+                finalAssistantText.isNotBlank()
+            ) {
+                try {
+                    val updatedFacts = requestStickyFactsUpdate(
+                        currentFactsJson = sessionSnapshot.stickyFactsJson,
+                        userMessage = cleanedContent,
+                        assistantMessage = finalAssistantText
+                    )
+
+                    if (updatedFacts != null) {
+                        sessionDao.updateStickyFacts(
+                            sessionId = sessionId,
+                            stickyFactsJson = serializeStickyFacts(updatedFacts)
+                        )
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Throwable) {
+                    // Memory extraction must not break user-visible response flow.
+                }
+            }
+
         } catch (cancelled: CancellationException) {
             throw cancelled
         }
@@ -296,6 +323,32 @@ class ChatRepositoryImpl(
                 session = session,
                 allMessages = allMessages
             )
+            ContextWindowMode.STICKY_FACTS_KEY_VALUE -> buildStickyFactsContextMessages(
+                session = session,
+                allMessages = allMessages
+            )
+        }
+    }
+
+    private fun buildStickyFactsContextMessages(
+        session: SessionEntity,
+        allMessages: List<MessageEntity>
+    ): List<ChatCompletionMessage> {
+        if (allMessages.isEmpty()) return emptyList()
+
+        val recentMessages = allMessages.takeLast(CONTEXT_TAIL_MESSAGES_COUNT)
+        val stickyFacts = parseStickyFactsMap(session.stickyFactsJson)
+
+        return buildList {
+            if (stickyFacts.isNotEmpty()) {
+                add(
+                    ChatCompletionMessage(
+                        role = SYSTEM_ROLE,
+                        content = buildStickyFactsContextPrompt(stickyFacts)
+                    )
+                )
+            }
+            addAll(recentMessages.toApiMessages())
         }
     }
 
@@ -484,6 +537,171 @@ class ChatRepositoryImpl(
         }
     }
 
+    private fun buildStickyFactsContextPrompt(facts: Map<String, String>): String {
+        val factsJson = json.encodeToString(
+            JsonObject.serializer(),
+            buildJsonObject {
+                facts.toSortedMap().forEach { (key, value) ->
+                    put(key, JsonPrimitive(value))
+                }
+            }
+        )
+
+        return buildString {
+            append("Sticky facts for this session in key/value JSON.\n")
+            append("Use them as durable context. If user message conflicts, prioritize new message.\n")
+            append("Facts JSON:\n")
+            append(factsJson)
+        }
+    }
+
+    private suspend fun requestStickyFactsUpdate(
+        currentFactsJson: String?,
+        userMessage: String,
+        assistantMessage: String
+    ): Map<String, String>? {
+        val currentFacts = parseStickyFactsMap(currentFactsJson)
+        val extractionPayload = buildStickyFactsExtractionPayload(
+            currentFacts = currentFacts,
+            userMessage = userMessage,
+            assistantMessage = assistantMessage
+        )
+
+        val request = ChatCompletionRequest(
+            model = DEFAULT_MODEL,
+            messages = listOf(
+                ChatCompletionMessage(
+                    role = SYSTEM_ROLE,
+                    content = STICKY_FACTS_EXTRACTION_SYSTEM_PROMPT
+                ),
+                ChatCompletionMessage(
+                    role = USER_ROLE,
+                    content = extractionPayload
+                )
+            ),
+            stream = false
+        )
+
+        val response = deepSeekApi.chatCompletions(request)
+        val body = response.body()
+
+        if (!response.isSuccessful || body == null) {
+            val rawError = response.errorBody()?.string()
+            throw ChatApiException(
+                buildApiErrorMessage(
+                    code = response.code(),
+                    rawError = rawError
+                )
+            )
+        }
+
+        val rawContent = body.choices.firstOrNull()?.message?.content.orEmpty()
+        Log.i("FUCK", "FACTS $rawContent")
+        return parseStickyFactsExtractionResult(rawContent)
+    }
+
+    private fun buildStickyFactsExtractionPayload(
+        currentFacts: Map<String, String>,
+        userMessage: String,
+        assistantMessage: String
+    ): String {
+        val factsJson = if (currentFacts.isEmpty()) {
+            "{}"
+        } else {
+            json.encodeToString(
+                JsonObject.serializer(),
+                buildJsonObject {
+                    currentFacts.toSortedMap().forEach { (key, value) ->
+                        put(key, JsonPrimitive(value))
+                    }
+                }
+            )
+        }
+
+        return buildString {
+            append("Текущие сохраненные факты:\n")
+            append(factsJson)
+            append("\n\nПоследний вопрос пользователя:\n")
+            append(userMessage.trim())
+            append("\n\nПоследний ответ ассистента:\n")
+            append(assistantMessage.trim())
+        }
+    }
+
+    private fun parseStickyFactsExtractionResult(rawText: String): Map<String, String>? {
+        val jsonPayload = extractJsonObjectCandidate(rawText) ?: return null
+        val root = runCatching {
+            json.parseToJsonElement(jsonPayload)
+        }.getOrNull() as? JsonObject ?: return null
+
+        val factsObject = root["facts"] as? JsonObject ?: return null
+        return factsObject.entries.mapNotNull { (key, value) ->
+            val normalizedKey = key.trim()
+            if (normalizedKey.isEmpty()) return@mapNotNull null
+
+            val normalizedValue = when (value) {
+                is JsonPrimitive -> value.contentOrNull ?: value.toString()
+                else -> value.toString()
+            }.trim()
+
+            if (normalizedValue.isEmpty()) null else normalizedKey to normalizedValue
+        }.toMap()
+    }
+
+    private fun parseStickyFactsMap(stickyFactsJson: String?): Map<String, String> {
+        val payload = stickyFactsJson?.trim().orEmpty()
+        if (payload.isEmpty()) return emptyMap()
+
+        val root = runCatching {
+            json.parseToJsonElement(payload)
+        }.getOrNull() as? JsonObject ?: return emptyMap()
+
+        return root.entries.mapNotNull { (key, value) ->
+            val normalizedKey = key.trim()
+            if (normalizedKey.isEmpty()) return@mapNotNull null
+
+            val normalizedValue = when (value) {
+                is JsonPrimitive -> value.contentOrNull ?: value.toString()
+                else -> value.toString()
+            }.trim()
+
+            if (normalizedValue.isEmpty()) null else normalizedKey to normalizedValue
+        }.toMap()
+    }
+
+    private fun serializeStickyFacts(
+        facts: Map<String, String>
+    ): String? {
+        if (facts.isEmpty()) return null
+
+        val factsObject = buildJsonObject {
+            facts.toSortedMap().forEach { (key, value) ->
+                put(key, JsonPrimitive(value))
+            }
+        }
+        return json.encodeToString(JsonObject.serializer(), factsObject)
+    }
+
+    private fun extractJsonObjectCandidate(rawText: String): String? {
+        val trimmed = rawText.trim()
+        if (trimmed.isEmpty()) return null
+
+        val unfenced = trimmed
+            .removePrefix("```json")
+            .removePrefix("```")
+            .removeSuffix("```")
+            .trim()
+
+        if (unfenced.startsWith('{') && unfenced.endsWith('}')) {
+            return unfenced
+        }
+
+        val startIndex = unfenced.indexOf('{')
+        val endIndex = unfenced.lastIndexOf('}')
+        if (startIndex < 0 || endIndex <= startIndex) return null
+        return unfenced.substring(startIndex, endIndex + 1)
+    }
+
     private fun List<MessageEntity>.toApiMessages(): List<ChatCompletionMessage> {
         return map { message ->
             ChatCompletionMessage(
@@ -582,6 +800,46 @@ class ChatRepositoryImpl(
         const val SUMMARY_COMPRESSION_SYSTEM_PROMPT =
             "Ты модуль сжатия истории чата. Выдавай плотное summary без воды. " +
                 "Сохраняй факты, намерения пользователя, ограничения, решения и открытые вопросы."
+
+        val STICKY_FACTS_EXTRACTION_SYSTEM_PROMPT = """
+            Ты — модуль извлечения памяти в среде выполнения AI-агента.
+            
+            Твоя задача — обновить набор долгосрочных фактов по диалогу.
+            На входе ты получаешь текущие сохраненные факты, последний вопрос пользователя и последний ответ ассистента.
+            На выходе ты возвращаешь полный обновленный набор фактов.
+            
+            Возвращай ТОЛЬКО факты, которые должны быть сохранены в долгосрочной памяти.
+            
+            Правила:
+            - Извлекай только стабильные факты о пользователе, целях, предпочтениях, настройках, личности или проекте.
+            - Игнорируй временные сообщения.
+            - Игнорируй светскую беседу.
+            - Игнорируй вопросы.
+            - Игнорируй объяснения ассистента.
+            - Предпочитай формат ключ-значение.
+            - Ключи должны быть короткими и в snake_case.
+            - Значения должны быть короткими строками.
+            - Не выдумывай факты.
+            - Если новый факт противоречит старому, старый факт заменяется на новый.
+            - Неконфликтующие факты остаются без изменения.
+            - Возвращай только корректный JSON.
+            - Не добавляй пояснений.
+            
+            Формат ответа:
+            
+            {
+              "facts": {
+                "key": "value"
+              }
+            }
+            
+            Если изменений нет, верни текущий набор facts без изменений.
+            Если фактов нет вообще, верни:
+            
+            {
+              "facts": {}
+            }
+        """.trimIndent()
     }
 }
 

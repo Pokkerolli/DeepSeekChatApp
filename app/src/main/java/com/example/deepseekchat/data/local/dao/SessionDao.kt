@@ -68,6 +68,15 @@ interface SessionDao {
     @Query(
         """
         UPDATE chat_sessions
+        SET stickyFactsJson = :stickyFactsJson
+        WHERE id = :sessionId
+        """
+    )
+    suspend fun updateStickyFacts(sessionId: String, stickyFactsJson: String?)
+
+    @Query(
+        """
+        UPDATE chat_sessions
         SET isContextSummarizationInProgress = :inProgress
         WHERE id = :sessionId
         """

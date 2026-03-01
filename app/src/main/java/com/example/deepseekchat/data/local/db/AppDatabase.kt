@@ -9,7 +9,7 @@ import com.example.deepseekchat.data.local.entity.SessionEntity
 
 @Database(
     entities = [SessionEntity::class, MessageEntity::class],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
