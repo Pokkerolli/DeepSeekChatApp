@@ -30,6 +30,9 @@ interface MessageDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertMessage(message: MessageEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertMessages(messages: List<MessageEntity>)
+
     @Query(
         """
         UPDATE chat_messages

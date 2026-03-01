@@ -74,6 +74,58 @@ class ChatRepositoryImpl(
         return entity.toDomain()
     }
 
+    override suspend fun createSessionBranch(
+        sourceSessionId: String,
+        upToMessageIdInclusive: Long
+    ): ChatSession {
+        val sourceSession = sessionDao.getSessionById(sourceSessionId)
+            ?: throw ChatApiException("Source session not found")
+        val allSourceMessages = messageDao.getMessagesOnce(sourceSessionId)
+        val branchBoundaryIndex = allSourceMessages.indexOfFirst { it.id == upToMessageIdInclusive }
+        if (branchBoundaryIndex < 0) {
+            throw ChatApiException("Source message not found")
+        }
+        val sourceMessages = allSourceMessages.take(branchBoundaryIndex + 1)
+        val now = System.currentTimeMillis()
+
+        val branchSession = SessionEntity(
+            id = UUID.randomUUID().toString(),
+            title = BRANCH_TITLE_PREFIX + sourceSession.title,
+            createdAt = now,
+            updatedAt = now,
+            systemPrompt = sourceSession.systemPrompt,
+            contextWindowMode = sourceSession.contextWindowMode,
+            stickyFactsJson = sourceSession.stickyFactsJson,
+            contextSummary = sourceSession.contextSummary,
+            summarizedMessagesCount = sourceSession.summarizedMessagesCount,
+            isContextSummarizationInProgress = false
+        )
+
+        database.withTransaction {
+            sessionDao.insertSession(branchSession)
+            if (sourceMessages.isNotEmpty()) {
+                messageDao.insertMessages(
+                    sourceMessages.map { source ->
+                        MessageEntity(
+                            sessionId = branchSession.id,
+                            role = source.role,
+                            content = source.content,
+                            createdAt = source.createdAt,
+                            promptTokens = source.promptTokens,
+                            promptCacheHitTokens = source.promptCacheHitTokens,
+                            promptCacheMissTokens = source.promptCacheMissTokens,
+                            completionTokens = source.completionTokens,
+                            totalTokens = source.totalTokens,
+                            compressionState = source.compressionState
+                        )
+                    }
+                )
+            }
+        }
+
+        return branchSession.toDomain()
+    }
+
     override suspend fun deleteSession(sessionId: String) {
         sessionDao.deleteSessionById(sessionId)
         summarizationMutexBySession.remove(sessionId)
@@ -784,6 +836,7 @@ class ChatRepositoryImpl(
 
     private companion object {
         const val DEFAULT_SESSION_TITLE = "New chat"
+        const val BRANCH_TITLE_PREFIX = "ветка + "
         const val DEFAULT_MODEL = "deepseek-chat"
         const val SYSTEM_ROLE = "system"
         const val USER_ROLE = "user"

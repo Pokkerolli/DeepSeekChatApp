@@ -12,6 +12,7 @@ import com.example.deepseekchat.data.remote.api.DeepSeekApi
 import com.example.deepseekchat.data.remote.stream.SseStreamParser
 import com.example.deepseekchat.data.repository.ChatRepositoryImpl
 import com.example.deepseekchat.domain.repository.ChatRepository
+import com.example.deepseekchat.domain.usecase.CreateSessionBranchUseCase
 import com.example.deepseekchat.domain.usecase.CreateSessionUseCase
 import com.example.deepseekchat.domain.usecase.DeleteSessionUseCase
 import com.example.deepseekchat.domain.usecase.GetActiveSessionUseCase
@@ -126,6 +127,7 @@ val useCaseModule = module {
     factory { ObserveMessagesUseCase(get()) }
     factory { ObserveSessionsUseCase(get()) }
     factory { CreateSessionUseCase(get()) }
+    factory { CreateSessionBranchUseCase(get()) }
     factory { DeleteSessionUseCase(get()) }
     factory { SetActiveSessionUseCase(get()) }
     factory { SetSessionSystemPromptUseCase(get()) }
@@ -141,6 +143,7 @@ val viewModelModule = module {
             observeMessagesUseCase = get(),
             observeSessionsUseCase = get(),
             createSessionUseCase = get(),
+            createSessionBranchUseCase = get(),
             deleteSessionUseCase = get(),
             setActiveSessionUseCase = get(),
             setSessionSystemPromptUseCase = get(),

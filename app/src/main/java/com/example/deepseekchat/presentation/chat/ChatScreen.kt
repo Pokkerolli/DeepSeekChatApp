@@ -26,8 +26,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,7 +45,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,6 +59,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -79,6 +84,7 @@ fun ChatRoute(
         onSessionSelected = viewModel::onSessionSelected,
         onSessionDeleted = viewModel::onDeleteSession,
         onCreateSession = viewModel::onCreateNewSession,
+        onCreateBranchClick = viewModel::onCreateBranchClicked,
         onSystemPromptSelected = viewModel::onSystemPromptSelected,
         onContextWindowModeSelected = viewModel::onContextWindowModeSelected,
         onConsumeError = viewModel::consumeError
@@ -94,6 +100,7 @@ private fun ChatScreen(
     onSessionSelected: (String) -> Unit,
     onSessionDeleted: (String) -> Unit,
     onCreateSession: () -> Unit,
+    onCreateBranchClick: (Long) -> Unit,
     onSystemPromptSelected: (String) -> Unit,
     onContextWindowModeSelected: (ContextWindowMode) -> Unit,
     onConsumeError: () -> Unit
@@ -233,7 +240,10 @@ private fun ChatScreen(
                     items = displayMessages,
                     key = { it.stableId }
                 ) { message ->
-                    MessageBubble(message = message)
+                    MessageBubble(
+                        message = message,
+                        onCreateBranchClick = onCreateBranchClick
+                    )
                 }
             }
         }
@@ -292,7 +302,10 @@ private fun ConversationUsagePanel(
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-private fun MessageBubble(message: ChatMessageUi) {
+private fun MessageBubble(
+    message: ChatMessageUi,
+    onCreateBranchClick: (Long) -> Unit
+) {
     val isUser = message.role == MessageRole.USER
     val bubbleColor = if (isUser) {
         MaterialTheme.colorScheme.primaryContainer
@@ -337,6 +350,30 @@ private fun MessageBubble(message: ChatMessageUi) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
+                }
+
+                if (message.role == MessageRole.ASSISTANT && !message.isStreaming) {
+                    TextButton(
+                        onClick = {
+                            message.sourceMessageId?.let(onCreateBranchClick)
+                        },
+                        modifier = Modifier.padding(bottom = 6.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.textButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.CallSplit,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .rotate(90f)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(text = "Создать ветку в новом чате")
+                    }
                 }
             }
         }
@@ -677,6 +714,7 @@ private fun ChatScreenPreview() {
                 onSessionSelected = {},
                 onSessionDeleted = {},
                 onCreateSession = {},
+                onCreateBranchClick = {},
                 onSystemPromptSelected = {},
                 onContextWindowModeSelected = {},
                 onConsumeError = {}

@@ -14,6 +14,7 @@ data class ChatSessionUi(
 
 data class ChatMessageUi(
     val stableId: String,
+    val sourceMessageId: Long? = null,
     val role: MessageRole,
     val content: String,
     val timestamp: Long,

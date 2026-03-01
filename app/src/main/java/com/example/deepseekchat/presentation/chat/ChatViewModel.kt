@@ -6,6 +6,7 @@ import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
 import com.example.deepseekchat.domain.model.ContextWindowMode
 import com.example.deepseekchat.domain.model.MessageRole
+import com.example.deepseekchat.domain.usecase.CreateSessionBranchUseCase
 import com.example.deepseekchat.domain.usecase.CreateSessionUseCase
 import com.example.deepseekchat.domain.usecase.DeleteSessionUseCase
 import com.example.deepseekchat.domain.usecase.GetActiveSessionUseCase
@@ -31,6 +32,7 @@ class ChatViewModel(
     private val observeMessagesUseCase: ObserveMessagesUseCase,
     private val observeSessionsUseCase: ObserveSessionsUseCase,
     private val createSessionUseCase: CreateSessionUseCase,
+    private val createSessionBranchUseCase: CreateSessionBranchUseCase,
     private val deleteSessionUseCase: DeleteSessionUseCase,
     private val setActiveSessionUseCase: SetActiveSessionUseCase,
     private val setSessionSystemPromptUseCase: SetSessionSystemPromptUseCase,
@@ -159,6 +161,29 @@ class ChatViewModel(
         viewModelScope.launch {
             val session = createSessionUseCase()
             setActiveSessionUseCase(session.id)
+        }
+    }
+
+    fun onCreateBranchClicked(sourceMessageId: Long) {
+        val state = _uiState.value
+        val sourceSessionId = state.activeSessionId ?: return
+        if (state.isSending) return
+
+        cancelCurrentStream()
+        viewModelScope.launch {
+            runCatching {
+                createSessionBranchUseCase(
+                    sourceSessionId = sourceSessionId,
+                    upToMessageIdInclusive = sourceMessageId
+                )
+            }.onSuccess { branchSession ->
+                setActiveSessionUseCase(branchSession.id)
+            }.onFailure { throwable ->
+                if (throwable is CancellationException) throw throwable
+                _uiState.update { ui ->
+                    ui.copy(errorMessage = throwable.toUiMessage())
+                }
+            }
         }
     }
 
@@ -421,6 +446,7 @@ class ChatViewModel(
     ): ChatMessageUi {
         return ChatMessageUi(
             stableId = id.toString(),
+            sourceMessageId = id,
             role = role,
             content = content,
             timestamp = timestamp,
