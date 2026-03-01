@@ -38,6 +38,7 @@ interface SessionDao {
         SET contextWindowMode = :contextWindowMode,
             contextSummary = :contextSummary,
             summarizedMessagesCount = :summarizedMessagesCount,
+            isStickyFactsExtractionInProgress = 0,
             isContextSummarizationInProgress = 0,
             updatedAt = :updatedAt
         WHERE id = :sessionId
@@ -73,6 +74,15 @@ interface SessionDao {
         """
     )
     suspend fun updateStickyFacts(sessionId: String, stickyFactsJson: String?)
+
+    @Query(
+        """
+        UPDATE chat_sessions
+        SET isStickyFactsExtractionInProgress = :inProgress
+        WHERE id = :sessionId
+        """
+    )
+    suspend fun updateStickyFactsExtractionInProgress(sessionId: String, inProgress: Boolean)
 
     @Query(
         """

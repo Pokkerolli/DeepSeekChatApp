@@ -116,9 +116,14 @@ private fun ChatScreen(
         state.messages,
         state.streamingText,
         state.activeSessionId,
-        state.isSending
+        state.isSending,
+        state.isActiveSessionStickyFactsExtractionInProgress
     ) {
-        val shouldShowStreamingBubble = state.isSending || state.streamingText.isNotEmpty()
+        val shouldShowStreamingBubble = state.streamingText.isNotEmpty() ||
+            (
+                state.isSending &&
+                    !state.isActiveSessionStickyFactsExtractionInProgress
+                )
         if (!shouldShowStreamingBubble) {
             state.messages
         } else {
@@ -127,7 +132,8 @@ private fun ChatScreen(
                 role = MessageRole.ASSISTANT,
                 content = state.streamingText,
                 timestamp = System.currentTimeMillis(),
-                isStreaming = state.isSending
+                isStreaming = state.isSending &&
+                    !state.isActiveSessionStickyFactsExtractionInProgress
             )
         }
     }
@@ -205,6 +211,7 @@ private fun ChatScreen(
                 showSystemPromptPresets = state.messages.isEmpty() && !state.isSending,
                 selectedSystemPrompt = state.activeSessionSystemPrompt,
                 selectedContextWindowMode = state.activeSessionContextWindowMode,
+                isStickyFactsExtractionInProgress = state.isActiveSessionStickyFactsExtractionInProgress,
                 isContextSummarizationInProgress = state.isActiveSessionContextSummarizationInProgress,
                 onValueChanged = onInputChanged,
                 onSystemPromptSelected = onSystemPromptSelected,
@@ -426,6 +433,7 @@ private fun MessageInputBar(
     showSystemPromptPresets: Boolean,
     selectedSystemPrompt: String?,
     selectedContextWindowMode: ContextWindowMode,
+    isStickyFactsExtractionInProgress: Boolean,
     isContextSummarizationInProgress: Boolean,
     onValueChanged: (String) -> Unit,
     onSystemPromptSelected: (String) -> Unit,
@@ -505,6 +513,23 @@ private fun MessageInputBar(
                     )
                     Text(
                         text = "Суммаризация контекста...",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (isStickyFactsExtractionInProgress) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Text(
+                        text = "Собираем факты...",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -662,12 +687,14 @@ private fun ChatScreenPreview() {
                             updatedAt = System.currentTimeMillis(),
                             systemPrompt = null,
                             contextWindowMode = ContextWindowMode.SUMMARY_PLUS_LAST_10,
+                            isStickyFactsExtractionInProgress = true,
                             isContextSummarizationInProgress = true
                         )
                     ),
                     activeSessionId = "preview-session",
                     activeSessionTitle = "Preview chat",
                     activeSessionContextWindowMode = ContextWindowMode.SUMMARY_PLUS_LAST_10,
+                    isActiveSessionStickyFactsExtractionInProgress = true,
                     isActiveSessionContextSummarizationInProgress = true,
                     messages = listOf(
                         ChatMessageUi(

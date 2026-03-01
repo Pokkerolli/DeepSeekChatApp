@@ -15,6 +15,7 @@ fun SessionEntity.toDomain(): ChatSession {
         updatedAt = updatedAt,
         systemPrompt = systemPrompt,
         contextWindowMode = ContextWindowMode.fromStored(contextWindowMode),
+        isStickyFactsExtractionInProgress = isStickyFactsExtractionInProgress,
         contextSummary = contextSummary,
         summarizedMessagesCount = summarizedMessagesCount,
         isContextSummarizationInProgress = isContextSummarizationInProgress

@@ -283,8 +283,7 @@ class ChatViewModel(
                 _uiState.update { state ->
                     val lastMessage = mappedMessages.lastOrNull()
                     val shouldDropTemporaryStreamingBubble =
-                        !state.isSending &&
-                            state.streamingText.isNotEmpty() &&
+                        state.streamingText.isNotEmpty() &&
                             lastMessage?.role == MessageRole.ASSISTANT &&
                             isEquivalentAssistantText(lastMessage.content, state.streamingText)
 
@@ -313,6 +312,7 @@ class ChatViewModel(
                         updatedAt = it.updatedAt,
                         systemPrompt = it.systemPrompt,
                         contextWindowMode = it.contextWindowMode,
+                        isStickyFactsExtractionInProgress = it.isStickyFactsExtractionInProgress,
                         isContextSummarizationInProgress = it.isContextSummarizationInProgress
                     )
                 },
@@ -321,6 +321,8 @@ class ChatViewModel(
                 activeSessionSystemPrompt = selectedSession?.systemPrompt,
                 activeSessionContextWindowMode =
                     selectedSession?.contextWindowMode ?: ContextWindowMode.FULL_HISTORY,
+                isActiveSessionStickyFactsExtractionInProgress =
+                    selectedSession?.isStickyFactsExtractionInProgress ?: false,
                 isActiveSessionContextSummarizationInProgress =
                     selectedSession?.isContextSummarizationInProgress ?: false
             )

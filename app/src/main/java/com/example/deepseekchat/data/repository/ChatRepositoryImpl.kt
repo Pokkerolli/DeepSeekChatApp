@@ -1,5 +1,4 @@
 package com.example.deepseekchat.data.repository
-import android.util.Log
 import androidx.room.withTransaction
 import com.example.deepseekchat.data.local.dao.MessageDao
 import com.example.deepseekchat.data.local.dao.SessionDao
@@ -96,6 +95,7 @@ class ChatRepositoryImpl(
             systemPrompt = sourceSession.systemPrompt,
             contextWindowMode = sourceSession.contextWindowMode,
             stickyFactsJson = sourceSession.stickyFactsJson,
+            isStickyFactsExtractionInProgress = false,
             contextSummary = sourceSession.contextSummary,
             summarizedMessagesCount = sourceSession.summarizedMessagesCount,
             isContextSummarizationInProgress = false
@@ -266,7 +266,6 @@ class ChatRepositoryImpl(
                 stream = true,
                 streamOptions = StreamOptions(includeUsage = true)
             )
-            Log.i("FUCK", "$requestMessages")
             val response = deepSeekApi.streamChatCompletions(request)
             val responseBody = response.body()
 
@@ -328,6 +327,7 @@ class ChatRepositoryImpl(
                 contextMode == ContextWindowMode.STICKY_FACTS_KEY_VALUE &&
                 finalAssistantText.isNotBlank()
             ) {
+                sessionDao.updateStickyFactsExtractionInProgress(sessionId, true)
                 try {
                     val updatedFacts = requestStickyFactsUpdate(
                         currentFactsJson = sessionSnapshot.stickyFactsJson,
@@ -345,6 +345,8 @@ class ChatRepositoryImpl(
                     throw cancelled
                 } catch (_: Throwable) {
                     // Memory extraction must not break user-visible response flow.
+                } finally {
+                    sessionDao.updateStickyFactsExtractionInProgress(sessionId, false)
                 }
             }
 
@@ -648,7 +650,6 @@ class ChatRepositoryImpl(
         }
 
         val rawContent = body.choices.firstOrNull()?.message?.content.orEmpty()
-        Log.i("FUCK", "FACTS $rawContent")
         return parseStickyFactsExtractionResult(rawContent)
     }
 
@@ -856,39 +857,63 @@ class ChatRepositoryImpl(
 
         val STICKY_FACTS_EXTRACTION_SYSTEM_PROMPT = """
             Ты — модуль извлечения памяти в среде выполнения AI-агента.
-            
-            Твоя задача — обновить набор долгосрочных фактов по диалогу.
-            На входе ты получаешь текущие сохраненные факты, последний вопрос пользователя и последний ответ ассистента.
-            На выходе ты возвращаешь полный обновленный набор фактов.
-            
-            Возвращай ТОЛЬКО факты, которые должны быть сохранены в долгосрочной памяти.
-            
-            Правила:
-            - Извлекай только стабильные факты о пользователе, целях, предпочтениях, настройках, личности или проекте.
-            - Игнорируй временные сообщения.
-            - Игнорируй светскую беседу.
-            - Игнорируй вопросы.
-            - Игнорируй объяснения ассистента.
+
+            Твоя задача — обновить набор фактов по диалогу, чтобы агент лучше помогал пользователю в будущем.
+
+            На входе: текущие сохраненные факты, последний вопрос пользователя и последний ответ ассистента.
+            На выходе: полный обновленный набор фактов.
+
+            Возвращай ТОЛЬКО факты, которые стоит сохранить.
+            Важно: извлекай БОЛЬШЕ полезных фактов, чем раньше, включая явно сообщенные пользователем детали (числа, списки, параметры), если они могут помочь в будущих задачах.
+
+            Что считать фактом для сохранения (приоритет по убыванию):
+            1) Профиль пользователя: возраст, город/страна/язык, профессия/роль, семья (если явно сказано), уровень навыков, доступные ресурсы/инструменты.
+            2) Устойчивые предпочтения: что нравится/не нравится, ограничения, диеты, любимые бренды, бюджетные рамки, формат ответов, тон общения, единицы измерения, часовой пояс.
+            3) Цели и проекты: долгосрочные цели, текущие проекты, домены интересов, контекст “что строим/зачем”.
+            4) Списки и наборы, которые могут пригодиться: список покупок, список задач, список требований, список идей, список вещей “нужно/хочу”.
+            5) Числовые и параметрические данные, явно сообщенные пользователем: возраст, рост/вес (если уместно), бюджет, дедлайны, количества, размеры, предпочтительные даты/время.
+            6) “Временные, но полезные” факты: если пользователь даёт список покупок или план на сегодня/неделю — СОХРАНЯЙ, но помечай как временное в значении (например, добавь префикс "temp:"), если нет признаков, что это навсегда.
+
+            Что игнорировать:
+            - Светская беседа без полезной информации.
+            - Риторика, эмоции без фактов (кроме устойчивых предпочтений типа “я ненавижу острое”).
+            - Случайные одноразовые детали, которые не помогут позже, ЕСЛИ они явно одноразовые и не относятся к целям/проектам/планам.
+            - Вопросы как вопросы (но если внутри вопроса есть факт о пользователе — извлекай этот факт).
+            - Объяснения ассистента.
+
+            Правила обновления:
+            - Не выдумывай.
+            - Если новый факт противоречит старому — замени старый.
+            - Неконфликтующие факты оставь.
+            - Нормализуй значения: короткие строки.
             - Предпочитай формат ключ-значение.
-            - Ключи должны быть короткими и в snake_case.
-            - Значения должны быть короткими строками.
-            - Не выдумывай факты.
-            - Если новый факт противоречит старому, старый факт заменяется на новый.
-            - Неконфликтующие факты остаются без изменения.
-            - Возвращай только корректный JSON.
-            - Не добавляй пояснений.
-            
-            Формат ответа:
-            
+            - Ключи: короткие, snake_case.
+            - Если информация — список, сохраняй как строку с разделителем ", " (или краткий JSON-строковый список, но всё равно значение должно быть строкой).
+
+            Рекомендованные ключи (используй при совпадении смысла):
+            - age
+            - location
+            - timezone
+            - language
+            - occupation
+            - goals
+            - current_project
+            - preferences
+            - dislikes
+            - constraints
+            - budget
+            - shopping_list
+            - todo_list
+
+            Формат ответа (ТОЛЬКО корректный JSON, без пояснений):
+
             {
               "facts": {
                 "key": "value"
               }
             }
-            
-            Если изменений нет, верни текущий набор facts без изменений.
+
             Если фактов нет вообще, верни:
-            
             {
               "facts": {}
             }

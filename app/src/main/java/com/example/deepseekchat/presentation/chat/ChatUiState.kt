@@ -9,6 +9,7 @@ data class ChatSessionUi(
     val updatedAt: Long,
     val systemPrompt: String?,
     val contextWindowMode: ContextWindowMode,
+    val isStickyFactsExtractionInProgress: Boolean,
     val isContextSummarizationInProgress: Boolean
 )
 
@@ -41,6 +42,7 @@ data class ChatUiState(
     val activeSessionTitle: String = "New chat",
     val activeSessionSystemPrompt: String? = null,
     val activeSessionContextWindowMode: ContextWindowMode = ContextWindowMode.FULL_HISTORY,
+    val isActiveSessionStickyFactsExtractionInProgress: Boolean = false,
     val isActiveSessionContextSummarizationInProgress: Boolean = false,
     val messages: List<ChatMessageUi> = emptyList(),
     val input: String = "",
