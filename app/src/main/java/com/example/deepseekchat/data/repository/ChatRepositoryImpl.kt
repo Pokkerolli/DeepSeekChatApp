@@ -1,4 +1,5 @@
 package com.example.deepseekchat.data.repository
+import android.util.Log
 import androidx.room.withTransaction
 import com.example.deepseekchat.data.local.dao.MessageDao
 import com.example.deepseekchat.data.local.dao.SessionDao
@@ -31,8 +32,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -94,6 +97,8 @@ class ChatRepositoryImpl(
             updatedAt = now,
             systemPrompt = sourceSession.systemPrompt,
             contextWindowMode = sourceSession.contextWindowMode,
+            longTermMemoryJson = sourceSession.longTermMemoryJson,
+            currentWorkTaskJson = sourceSession.currentWorkTaskJson,
             stickyFactsJson = sourceSession.stickyFactsJson,
             isStickyFactsExtractionInProgress = false,
             contextSummary = sourceSession.contextSummary,
@@ -208,6 +213,7 @@ class ChatRepositoryImpl(
 
             val now = System.currentTimeMillis()
             val existingSession = sessionDao.getSessionById(sessionId)
+            val controlCommand = parseControlCommand(cleanedContent)
             val session = existingSession ?: SessionEntity(
                 id = sessionId,
                 title = DEFAULT_SESSION_TITLE,
@@ -215,7 +221,10 @@ class ChatRepositoryImpl(
                 updatedAt = now
             )
 
-            val resolvedTitle = if (session.title == DEFAULT_SESSION_TITLE) {
+            val resolvedTitle = if (
+                controlCommand == null &&
+                session.title == DEFAULT_SESSION_TITLE
+            ) {
                 cleanedContent.toSessionTitle()
             } else {
                 session.title
@@ -239,21 +248,63 @@ class ChatRepositoryImpl(
                 )
             }
 
+            if (controlCommand != null) {
+                val commandResponse = handleControlCommand(
+                    session = sessionSnapshot,
+                    command = controlCommand
+                )
+                val doneTimestamp = System.currentTimeMillis()
+                database.withTransaction {
+                    if (commandResponse.memoryChanged) {
+                        sessionDao.updateLongTermMemory(
+                            sessionId = sessionId,
+                            longTermMemoryJson = serializeLongTermMemoryInstructions(
+                                commandResponse.memoryInstructions.orEmpty()
+                            ),
+                            updatedAt = doneTimestamp
+                        )
+                    }
+                    if (commandResponse.workTaskChanged) {
+                        sessionDao.updateCurrentWorkTask(
+                            sessionId = sessionId,
+                            currentWorkTaskJson = serializeCurrentWorkTask(commandResponse.workTaskContext),
+                            updatedAt = doneTimestamp
+                        )
+                    }
+                    messageDao.insertMessage(
+                        MessageEntity(
+                            sessionId = sessionId,
+                            role = MessageRole.ASSISTANT.name,
+                            content = commandResponse.reply,
+                            createdAt = doneTimestamp
+                        )
+                    )
+                    sessionDao.touchSession(sessionId, doneTimestamp)
+                }
+                emit(commandResponse.reply)
+                return@flow
+            }
+
             val allMessages = messageDao.getMessagesOnce(sessionId)
+            val modelMessages = allMessages.filterControlCommandMessagesForModelContext()
             val contextMode = ContextWindowMode.fromStored(sessionSnapshot.contextWindowMode)
             val contextMessages = buildUserRequestContextMessages(
                 sessionId = sessionId,
                 session = sessionSnapshot,
-                allMessages = allMessages
+                allMessages = modelMessages
             )
 
-            val systemPrompt = sessionSnapshot.systemPrompt.normalizeSystemPrompt()
+            val contextBlock = buildContextBlock(
+                baseSystemPrompt = sessionSnapshot.systemPrompt.normalizeSystemPrompt(),
+                memoryInstructions = parseLongTermMemoryInstructions(sessionSnapshot.longTermMemoryJson),
+                currentWorkTask = parseCurrentWorkTask(sessionSnapshot.currentWorkTaskJson)
+            )
             val requestMessages = buildList {
-                if (systemPrompt != null) {
+                if (contextBlock != null) {
                     add(
                         ChatCompletionMessage(
                             role = SYSTEM_ROLE,
-                            content = systemPrompt
+                            content = contextBlock
                         )
                     )
                 }
@@ -266,6 +317,7 @@ class ChatRepositoryImpl(
                 stream = true,
                 streamOptions = StreamOptions(includeUsage = true)
             )
+            Log.i("FUCK", "$request")
             val response = deepSeekApi.streamChatCompletions(request)
             val responseBody = response.body()
 
@@ -470,10 +522,11 @@ class ChatRepositoryImpl(
                 }
 
                 val allMessages = messageDao.getMessagesOnce(sessionId)
-                if (allMessages.size <= CONTEXT_TAIL_MESSAGES_COUNT) return
+                val modelMessages = allMessages.filterControlCommandMessagesForModelContext()
+                if (modelMessages.size <= CONTEXT_TAIL_MESSAGES_COUNT) return
 
-                val splitIndex = (allMessages.size - CONTEXT_TAIL_MESSAGES_COUNT).coerceAtLeast(0)
-                val olderMessages = allMessages.take(splitIndex)
+                val splitIndex = (modelMessages.size - CONTEXT_TAIL_MESSAGES_COUNT).coerceAtLeast(0)
+                val olderMessages = modelMessages.take(splitIndex)
 
                 markOlderMessagesReadyForCompression(
                     sessionId = sessionId,
@@ -500,10 +553,12 @@ class ChatRepositoryImpl(
                         state = MessageCompressionState.SUMMARIZED.name
                     )
 
-                    val summarizedCount = messageDao.countByCompressionState(
-                        sessionId = sessionId,
-                        state = MessageCompressionState.SUMMARIZED.name
-                    )
+                    val summarizedCount = messageDao.getMessagesOnce(sessionId)
+                        .filterControlCommandMessagesForModelContext()
+                        .count {
+                            it.compressionState.toCompressionState() ==
+                                MessageCompressionState.SUMMARIZED
+                        }
 
                     sessionDao.updateContextSummary(
                         sessionId = sessionId,
@@ -755,6 +810,510 @@ class ChatRepositoryImpl(
         return unfenced.substring(startIndex, endIndex + 1)
     }
 
+    private fun handleControlCommand(
+        session: SessionEntity,
+        command: ChatControlCommand
+    ): ControlCommandResponse {
+        return when (command) {
+            is ChatControlCommand.Memory -> {
+                handleMemoryCommand(
+                    currentInstructions = parseLongTermMemoryInstructions(session.longTermMemoryJson),
+                    command = command.command
+                )
+            }
+
+            is ChatControlCommand.Work -> {
+                handleWorkCommand(
+                    workTaskContext = parseCurrentWorkTask(session.currentWorkTaskJson),
+                    command = command.command
+                )
+            }
+        }
+    }
+
+    private fun handleMemoryCommand(
+        currentInstructions: List<String>,
+        command: MemoryCommand
+    ): ControlCommandResponse {
+        return when (command) {
+            is MemoryCommand.Add -> {
+                val updatedInstructions = currentInstructions + command.instruction
+                ControlCommandResponse(
+                    reply = MEMORY_ADD_SUCCESS_REPLY,
+                    memoryChanged = true,
+                    memoryInstructions = updatedInstructions
+                )
+            }
+
+            is MemoryCommand.Delete -> {
+                val index = command.number - 1
+                if (index !in currentInstructions.indices) {
+                    return ControlCommandResponse(
+                        reply = "Инструкция с номером ${command.number} не найдена"
+                    )
+                }
+
+                val removedInstruction = currentInstructions[index]
+                val updatedInstructions = currentInstructions.toMutableList().apply {
+                    removeAt(index)
+                }
+
+                ControlCommandResponse(
+                    reply = "Удалил инструкцию $removedInstruction",
+                    memoryChanged = true,
+                    memoryInstructions = updatedInstructions
+                )
+            }
+
+            MemoryCommand.Show -> {
+                ControlCommandResponse(reply = buildMemoryShowReply(currentInstructions))
+            }
+
+            is MemoryCommand.Invalid -> {
+                ControlCommandResponse(reply = command.reply)
+            }
+        }
+    }
+
+    private fun handleWorkCommand(
+        workTaskContext: WorkTaskContext,
+        command: WorkCommand
+    ): ControlCommandResponse {
+        val currentTask = workTaskContext.activeTask
+
+        return when (command) {
+            is WorkCommand.Start -> {
+                if (currentTask != null) {
+                    return ControlCommandResponse(
+                        reply = "Текущая задача уже задана: ${currentTask.description}"
+                    )
+                }
+
+                ControlCommandResponse(
+                    reply = WORK_START_SUCCESS_REPLY,
+                    workTaskChanged = true,
+                    workTaskContext = WorkTaskContext(
+                        activeTask = WorkTaskState(
+                            description = command.description,
+                            rules = emptyList()
+                        )
+                    )
+                )
+            }
+
+            WorkCommand.Done -> {
+                if (currentTask == null) {
+                    return ControlCommandResponse(
+                        reply = if (workTaskContext.isCompleted) {
+                            WORK_COMPLETED_REPLY
+                        } else {
+                            WORK_EMPTY_REPLY
+                        }
+                    )
+                }
+                ControlCommandResponse(
+                    reply = WORK_DONE_SUCCESS_REPLY,
+                    workTaskChanged = true,
+                    workTaskContext = WorkTaskContext(isCompleted = true)
+                )
+            }
+
+            is WorkCommand.Rule -> {
+                if (currentTask == null) {
+                    return ControlCommandResponse(
+                        reply = if (workTaskContext.isCompleted) {
+                            WORK_COMPLETED_REPLY
+                        } else {
+                            WORK_EMPTY_REPLY
+                        }
+                    )
+                }
+                val updatedTask = currentTask.copy(rules = currentTask.rules + command.rule)
+                ControlCommandResponse(
+                    reply = WORK_RULE_ADD_SUCCESS_REPLY,
+                    workTaskChanged = true,
+                    workTaskContext = WorkTaskContext(activeTask = updatedTask)
+                )
+            }
+
+            is WorkCommand.Delete -> {
+                if (currentTask == null) {
+                    return ControlCommandResponse(
+                        reply = if (workTaskContext.isCompleted) {
+                            WORK_COMPLETED_REPLY
+                        } else {
+                            WORK_EMPTY_REPLY
+                        }
+                    )
+                }
+
+                val index = command.number - 1
+                if (index !in currentTask.rules.indices) {
+                    return ControlCommandResponse(
+                        reply = "Правило с номером ${command.number} не найдено"
+                    )
+                }
+
+                val removedRule = currentTask.rules[index]
+                val updatedRules = currentTask.rules.toMutableList().apply {
+                    removeAt(index)
+                }
+
+                ControlCommandResponse(
+                    reply = "Удалил правило $removedRule",
+                    workTaskChanged = true,
+                    workTaskContext = WorkTaskContext(
+                        activeTask = currentTask.copy(rules = updatedRules)
+                    )
+                )
+            }
+
+            WorkCommand.Show -> {
+                ControlCommandResponse(reply = buildWorkShowReply(workTaskContext))
+            }
+
+            is WorkCommand.Invalid -> {
+                ControlCommandResponse(reply = command.reply)
+            }
+        }
+    }
+
+    private fun parseControlCommand(content: String): ChatControlCommand? {
+        parseMemoryCommand(content)?.let { return ChatControlCommand.Memory(it) }
+        parseWorkCommand(content)?.let { return ChatControlCommand.Work(it) }
+        return null
+    }
+
+    private fun parseMemoryCommand(content: String): MemoryCommand? {
+        val trimmed = content.trim()
+        if (!trimmed.startsWith(MEMORY_COMMAND_PREFIX)) return null
+
+        val payload = trimmed.removePrefix(MEMORY_COMMAND_PREFIX).trim()
+        if (payload.isEmpty()) return MemoryCommand.Invalid(MEMORY_COMMAND_HELP)
+
+        val parts = payload.split(Regex("\\s+"), limit = 2)
+        val operation = parts.firstOrNull()?.lowercase().orEmpty()
+        val argument = parts.getOrNull(1)?.trim().orEmpty()
+
+        return when (operation) {
+            MEMORY_OPERATION_ADD -> {
+                if (argument.isEmpty()) {
+                    MemoryCommand.Invalid("Укажи инструкцию после /memory add")
+                } else {
+                    MemoryCommand.Add(argument)
+                }
+            }
+
+            MEMORY_OPERATION_DELETE -> {
+                val number = argument.toIntOrNull()
+                if (number == null || number <= 0) {
+                    MemoryCommand.Invalid("Укажи корректный номер после /memory delete")
+                } else {
+                    MemoryCommand.Delete(number)
+                }
+            }
+
+            MEMORY_OPERATION_SHOW -> {
+                if (argument.isNotEmpty()) {
+                    MemoryCommand.Invalid(MEMORY_COMMAND_HELP)
+                } else {
+                    MemoryCommand.Show
+                }
+            }
+
+            else -> MemoryCommand.Invalid(MEMORY_COMMAND_HELP)
+        }
+    }
+
+    private fun parseWorkCommand(content: String): WorkCommand? {
+        val trimmed = content.trim()
+        if (!trimmed.startsWith(WORK_COMMAND_PREFIX)) return null
+
+        val payload = trimmed.removePrefix(WORK_COMMAND_PREFIX).trim()
+        if (payload.isEmpty()) return WorkCommand.Invalid(WORK_COMMAND_HELP)
+
+        val parts = payload.split(Regex("\\s+"), limit = 2)
+        val operation = parts.firstOrNull()?.lowercase().orEmpty()
+        val argument = parts.getOrNull(1)?.trim().orEmpty()
+
+        return when (operation) {
+            WORK_OPERATION_START -> {
+                if (argument.isEmpty()) {
+                    WorkCommand.Invalid("Укажи описание после /work start")
+                } else {
+                    WorkCommand.Start(argument)
+                }
+            }
+
+            WORK_OPERATION_DONE -> {
+                if (argument.isNotEmpty()) {
+                    WorkCommand.Invalid(WORK_COMMAND_HELP)
+                } else {
+                    WorkCommand.Done
+                }
+            }
+
+            WORK_OPERATION_RULE -> {
+                if (argument.isEmpty()) {
+                    WorkCommand.Invalid("Укажи описание правила после /work rule")
+                } else {
+                    WorkCommand.Rule(argument)
+                }
+            }
+
+            WORK_OPERATION_DELETE -> {
+                val number = argument.toIntOrNull()
+                if (number == null || number <= 0) {
+                    WorkCommand.Invalid("Укажи корректный номер после /work delete")
+                } else {
+                    WorkCommand.Delete(number)
+                }
+            }
+
+            WORK_OPERATION_SHOW -> {
+                if (argument.isNotEmpty()) {
+                    WorkCommand.Invalid(WORK_COMMAND_HELP)
+                } else {
+                    WorkCommand.Show
+                }
+            }
+
+            else -> WorkCommand.Invalid(WORK_COMMAND_HELP)
+        }
+    }
+
+    private fun parseLongTermMemoryInstructions(memoryJson: String?): List<String> {
+        val payload = memoryJson?.trim().orEmpty()
+        if (payload.isEmpty()) return emptyList()
+
+        val root = runCatching {
+            json.parseToJsonElement(payload)
+        }.getOrNull() as? JsonArray ?: return emptyList()
+
+        return root.mapNotNull { element ->
+            val value = (element as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
+            value.ifEmpty { null }
+        }
+    }
+
+    private fun serializeLongTermMemoryInstructions(
+        instructions: List<String>
+    ): String? {
+        val normalized = instructions
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        if (normalized.isEmpty()) return null
+
+        val jsonArray = buildJsonArray {
+            normalized.forEach { add(JsonPrimitive(it)) }
+        }
+        return json.encodeToString(JsonArray.serializer(), jsonArray)
+    }
+
+    private fun parseCurrentWorkTask(currentWorkTaskJson: String?): WorkTaskContext {
+        val payload = currentWorkTaskJson?.trim().orEmpty()
+        if (payload.isEmpty()) return WorkTaskContext()
+
+        val root = runCatching {
+            json.parseToJsonElement(payload)
+        }.getOrNull() as? JsonObject ?: return WorkTaskContext()
+
+        val status = (root[WORK_TASK_STATUS_KEY] as? JsonPrimitive)
+            ?.contentOrNull
+            ?.trim()
+            ?.uppercase()
+
+        val description = (root[WORK_TASK_DESCRIPTION_KEY] as? JsonPrimitive)
+            ?.contentOrNull
+            ?.trim()
+            .orEmpty()
+        if (description.isEmpty()) {
+            return if (status == WORK_TASK_STATUS_DONE) {
+                WorkTaskContext(isCompleted = true)
+            } else {
+                WorkTaskContext()
+            }
+        }
+
+        val rules = (root[WORK_TASK_RULES_KEY] as? JsonArray)
+            ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.trim()?.ifEmpty { null } }
+            .orEmpty()
+
+        return WorkTaskContext(
+            activeTask = WorkTaskState(
+                description = description,
+                rules = rules
+            )
+        )
+    }
+
+    private fun serializeCurrentWorkTask(workTaskContext: WorkTaskContext?): String? {
+        if (workTaskContext == null) return null
+        val activeTask = workTaskContext.activeTask
+
+        if (activeTask != null) {
+            val description = activeTask.description.trim()
+            if (description.isEmpty()) return null
+
+            val rules = activeTask.rules
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+
+            val jsonPayload = buildJsonObject {
+                put(WORK_TASK_STATUS_KEY, JsonPrimitive(WORK_TASK_STATUS_ACTIVE))
+                put(WORK_TASK_DESCRIPTION_KEY, JsonPrimitive(description))
+                put(
+                    WORK_TASK_RULES_KEY,
+                    buildJsonArray {
+                        rules.forEach { add(JsonPrimitive(it)) }
+                    }
+                )
+            }
+
+            return json.encodeToString(JsonObject.serializer(), jsonPayload)
+        }
+
+        if (!workTaskContext.isCompleted) return null
+
+        val jsonPayload = buildJsonObject {
+            put(WORK_TASK_STATUS_KEY, JsonPrimitive(WORK_TASK_STATUS_DONE))
+        }
+        return json.encodeToString(JsonObject.serializer(), jsonPayload)
+    }
+
+    private fun buildContextBlock(
+        baseSystemPrompt: String?,
+        memoryInstructions: List<String>,
+        currentWorkTask: WorkTaskContext
+    ): String? {
+        val memoryPrompt = buildMemorySystemPrompt(memoryInstructions)
+        val workTaskPrompt = buildWorkTaskSystemPrompt(currentWorkTask)
+        val parts = buildList {
+            baseSystemPrompt?.let { add(it) }
+            add(memoryPrompt)
+            add(workTaskPrompt)
+        }
+        return parts.joinToString(separator = "\n\n")
+    }
+
+    private fun buildMemorySystemPrompt(instructions: List<String>): String {
+        return buildString {
+            append(LONG_TERM_MEMORY_SECTION_TITLE)
+            if (instructions.isEmpty()) {
+                append('\n')
+                append(LONG_TERM_MEMORY_EMPTY_HINT)
+                return@buildString
+            }
+
+            append('\n')
+            append(LONG_TERM_MEMORY_PRIORITY_HINT)
+            instructions.forEachIndexed { index, instruction ->
+                append('\n')
+                append(index + 1)
+                append(". ")
+                append(instruction)
+            }
+        }
+    }
+
+    private fun buildWorkTaskSystemPrompt(workTaskContext: WorkTaskContext): String {
+        val task = workTaskContext.activeTask
+
+        return buildString {
+            append(CURRENT_WORK_SECTION_TITLE)
+            if (task == null) {
+                append('\n')
+                append(CURRENT_WORK_EMPTY_HINT)
+                return@buildString
+            }
+
+            append('\n')
+            append(CURRENT_WORK_PRIORITY_HINT)
+            append("\nЗадача:")
+            append('\n')
+            append(task.description)
+
+            if (task.rules.isNotEmpty()) {
+                append("\nПравила задачи:")
+                task.rules.forEachIndexed { index, rule ->
+                    append('\n')
+                    append(index + 1)
+                    append(". ")
+                    append(rule)
+                }
+            }
+        }
+    }
+
+    private fun buildMemoryShowReply(instructions: List<String>): String {
+        if (instructions.isEmpty()) return MEMORY_EMPTY_REPLY
+
+        return buildString {
+            append(MEMORY_SHOW_TITLE)
+            instructions.forEachIndexed { index, instruction ->
+                append('\n')
+                append(index + 1)
+                append(' ')
+                append(instruction)
+            }
+        }
+    }
+
+    private fun buildWorkShowReply(workTaskContext: WorkTaskContext): String {
+        val task = workTaskContext.activeTask
+        if (task == null) {
+            return if (workTaskContext.isCompleted) {
+                WORK_COMPLETED_REPLY
+            } else {
+                WORK_EMPTY_REPLY
+            }
+        }
+
+        return buildString {
+            append(WORK_SHOW_TITLE)
+            append('\n')
+            append(task.description)
+            append('\n')
+            append(WORK_RULES_TITLE)
+
+            if (task.rules.isEmpty()) {
+                append('\n')
+                append(WORK_RULES_EMPTY)
+            } else {
+                task.rules.forEachIndexed { index, rule ->
+                    append('\n')
+                    append(index + 1)
+                    append(' ')
+                    append(rule)
+                }
+            }
+        }
+    }
+
+    private fun List<MessageEntity>.filterControlCommandMessagesForModelContext(): List<MessageEntity> {
+        if (isEmpty()) return emptyList()
+
+        val filtered = ArrayList<MessageEntity>(size)
+        var skipNextAssistant = false
+        for (message in this) {
+            val role = MessageRole.fromStored(message.role)
+
+            if (skipNextAssistant && role == MessageRole.ASSISTANT) {
+                skipNextAssistant = false
+                continue
+            }
+            skipNextAssistant = false
+
+            if (role == MessageRole.USER && parseControlCommand(message.content) != null) {
+                skipNextAssistant = true
+                continue
+            }
+
+            filtered += message
+        }
+        return filtered
+    }
+
     private fun List<MessageEntity>.toApiMessages(): List<ChatCompletionMessage> {
         return map { message ->
             ChatCompletionMessage(
@@ -843,6 +1402,52 @@ class ChatRepositoryImpl(
         const val USER_ROLE = "user"
         const val MAX_RAW_ERROR_LENGTH = 240
 
+        const val MEMORY_COMMAND_PREFIX = "/memory"
+        const val MEMORY_OPERATION_ADD = "add"
+        const val MEMORY_OPERATION_DELETE = "delete"
+        const val MEMORY_OPERATION_SHOW = "show"
+
+        const val MEMORY_ADD_SUCCESS_REPLY = "Запомнил"
+        const val MEMORY_EMPTY_REPLY = "Сохраненных инструкций нет"
+        const val MEMORY_SHOW_TITLE = "Сохраненные инструкции"
+        const val MEMORY_COMMAND_HELP =
+            "Команды памяти: /memory add <инструкция>, /memory delete <номер>, /memory show"
+
+        const val LONG_TERM_MEMORY_SECTION_TITLE = "[LONG TERM MEMORY]"
+        const val LONG_TERM_MEMORY_EMPTY_HINT = "Инструкции долговременной памяти не заданы."
+        const val LONG_TERM_MEMORY_PRIORITY_HINT =
+            "Эти правила имеют высший приоритет над всем в контексте, они обязательны к исполнению и не могут быть нарушены. Если нужно нарушить инструкцию, то пользователь явно должен удалить ее, через /memory delete"
+
+        const val WORK_COMMAND_PREFIX = "/work"
+        const val WORK_OPERATION_START = "start"
+        const val WORK_OPERATION_DONE = "done"
+        const val WORK_OPERATION_RULE = "rule"
+        const val WORK_OPERATION_DELETE = "delete"
+        const val WORK_OPERATION_SHOW = "show"
+
+        const val CURRENT_WORK_SECTION_TITLE = "[CURRECT WORK]"
+        const val CURRENT_WORK_PRIORITY_HINT = "Эта задача приоритетна в исполнении"
+        const val CURRENT_WORK_EMPTY_HINT =
+            "Текущей задачи не задано, если user просит рассказать о текущей задаче, то говори, что задача выполнена и предложи задать новую"
+
+        const val WORK_START_SUCCESS_REPLY = "Задачу зафиксировал"
+        const val WORK_DONE_SUCCESS_REPLY = "Завершил текущую задачу"
+        const val WORK_RULE_ADD_SUCCESS_REPLY = "Добавил правило"
+        const val WORK_EMPTY_REPLY = "Текущая задача не задана"
+        const val WORK_COMPLETED_REPLY =
+            "Текущая задача завершена, вы можете задать новую задачу через /work start"
+        const val WORK_SHOW_TITLE = "Текущая задача"
+        const val WORK_RULES_TITLE = "Правила"
+        const val WORK_RULES_EMPTY = "(пусто)"
+        const val WORK_COMMAND_HELP =
+            "Команды задачи: /work start <задача>, /work done, /work rule <правило>, /work delete <номер>, /work show"
+
+        const val WORK_TASK_STATUS_KEY = "status"
+        const val WORK_TASK_STATUS_ACTIVE = "ACTIVE"
+        const val WORK_TASK_STATUS_DONE = "DONE"
+        const val WORK_TASK_DESCRIPTION_KEY = "description"
+        const val WORK_TASK_RULES_KEY = "rules"
+
         const val CONTEXT_TAIL_MESSAGES_COUNT = 10
         const val SUMMARY_BATCH_SIZE = 10
         const val MAX_SUMMARY_LENGTH = 6_000
@@ -927,4 +1532,43 @@ private data class PromptUsage(
     val promptTokens: Int,
     val promptCacheHitTokens: Int,
     val promptCacheMissTokens: Int
+)
+
+private sealed interface MemoryCommand {
+    data class Add(val instruction: String) : MemoryCommand
+    data class Delete(val number: Int) : MemoryCommand
+    object Show : MemoryCommand
+    data class Invalid(val reply: String) : MemoryCommand
+}
+
+private sealed interface WorkCommand {
+    data class Start(val description: String) : WorkCommand
+    object Done : WorkCommand
+    data class Rule(val rule: String) : WorkCommand
+    data class Delete(val number: Int) : WorkCommand
+    object Show : WorkCommand
+    data class Invalid(val reply: String) : WorkCommand
+}
+
+private sealed interface ChatControlCommand {
+    data class Memory(val command: MemoryCommand) : ChatControlCommand
+    data class Work(val command: WorkCommand) : ChatControlCommand
+}
+
+private data class WorkTaskState(
+    val description: String,
+    val rules: List<String>
+)
+
+private data class WorkTaskContext(
+    val activeTask: WorkTaskState? = null,
+    val isCompleted: Boolean = false
+)
+
+private data class ControlCommandResponse(
+    val reply: String,
+    val memoryChanged: Boolean = false,
+    val memoryInstructions: List<String>? = null,
+    val workTaskChanged: Boolean = false,
+    val workTaskContext: WorkTaskContext? = null
 )
