@@ -6,26 +6,30 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.deepseekchat.BuildConfig
 import com.example.deepseekchat.data.local.dao.MessageDao
 import com.example.deepseekchat.data.local.dao.SessionDao
+import com.example.deepseekchat.data.local.dao.UserProfilePresetDao
 import com.example.deepseekchat.data.local.datastore.ActiveSessionPreferences
 import com.example.deepseekchat.data.local.db.AppDatabase
 import com.example.deepseekchat.data.remote.api.DeepSeekApi
 import com.example.deepseekchat.data.remote.stream.SseStreamParser
 import com.example.deepseekchat.data.repository.ChatRepositoryImpl
 import com.example.deepseekchat.domain.repository.ChatRepository
+import com.example.deepseekchat.domain.usecase.CreateCustomUserProfilePresetFromDraftUseCase
 import com.example.deepseekchat.domain.usecase.CreateSessionBranchUseCase
 import com.example.deepseekchat.domain.usecase.CreateSessionUseCase
 import com.example.deepseekchat.domain.usecase.DeleteSessionUseCase
 import com.example.deepseekchat.domain.usecase.GetActiveSessionUseCase
 import com.example.deepseekchat.domain.usecase.ObserveMessagesUseCase
+import com.example.deepseekchat.domain.usecase.ObserveUserProfilePresetsUseCase
 import com.example.deepseekchat.domain.usecase.ObserveSessionsUseCase
 import com.example.deepseekchat.domain.usecase.RunContextSummarizationIfNeededUseCase
 import com.example.deepseekchat.domain.usecase.SendMessageUseCase
+import com.example.deepseekchat.domain.usecase.SetActiveSessionUseCase
 import com.example.deepseekchat.domain.usecase.SetSessionContextWindowModeUseCase
 import com.example.deepseekchat.domain.usecase.SetSessionSystemPromptUseCase
-import com.example.deepseekchat.domain.usecase.SetActiveSessionUseCase
+import com.example.deepseekchat.domain.usecase.SetSessionUserProfileUseCase
+import com.example.deepseekchat.domain.usecase.StreamUserProfileBuilderReplyUseCase
 import com.example.deepseekchat.presentation.chat.ChatViewModel
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -33,6 +37,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 import retrofit2.Retrofit
+import java.util.concurrent.TimeUnit
 
 val databaseModule = module {
     single<AppDatabase> {
@@ -49,7 +54,9 @@ val databaseModule = module {
                 MIGRATION_9_10,
                 MIGRATION_10_11,
                 MIGRATION_11_12,
-                MIGRATION_12_13
+                MIGRATION_12_13,
+                MIGRATION_13_14,
+                MIGRATION_14_15
             )
             .fallbackToDestructiveMigration()
             .build()
@@ -57,6 +64,7 @@ val databaseModule = module {
 
     single<SessionDao> { get<AppDatabase>().sessionDao() }
     single<MessageDao> { get<AppDatabase>().messageDao() }
+    single<UserProfilePresetDao> { get<AppDatabase>().userProfilePresetDao() }
     single { ActiveSessionPreferences(get()) }
 }
 
@@ -117,6 +125,7 @@ val repositoryModule = module {
             database = get(),
             sessionDao = get(),
             messageDao = get(),
+            userProfilePresetDao = get(),
             deepSeekApi = get(),
             sseStreamParser = get(),
             activeSessionPreferences = get(),
@@ -129,12 +138,16 @@ val useCaseModule = module {
     factory { SendMessageUseCase(get()) }
     factory { ObserveMessagesUseCase(get()) }
     factory { ObserveSessionsUseCase(get()) }
+    factory { ObserveUserProfilePresetsUseCase(get()) }
     factory { CreateSessionUseCase(get()) }
     factory { CreateSessionBranchUseCase(get()) }
+    factory { CreateCustomUserProfilePresetFromDraftUseCase(get()) }
     factory { DeleteSessionUseCase(get()) }
     factory { SetActiveSessionUseCase(get()) }
     factory { SetSessionSystemPromptUseCase(get()) }
+    factory { SetSessionUserProfileUseCase(get()) }
     factory { SetSessionContextWindowModeUseCase(get()) }
+    factory { StreamUserProfileBuilderReplyUseCase(get()) }
     factory { RunContextSummarizationIfNeededUseCase(get()) }
     factory { GetActiveSessionUseCase(get()) }
 }
@@ -145,12 +158,16 @@ val viewModelModule = module {
             sendMessageUseCase = get(),
             observeMessagesUseCase = get(),
             observeSessionsUseCase = get(),
+            observeUserProfilePresetsUseCase = get(),
             createSessionUseCase = get(),
             createSessionBranchUseCase = get(),
+            createCustomUserProfilePresetFromDraftUseCase = get(),
             deleteSessionUseCase = get(),
             setActiveSessionUseCase = get(),
             setSessionSystemPromptUseCase = get(),
+            setSessionUserProfileUseCase = get(),
             setSessionContextWindowModeUseCase = get(),
+            streamUserProfileBuilderReplyUseCase = get(),
             runContextSummarizationIfNeededUseCase = get(),
             getActiveSessionUseCase = get()
         )
@@ -303,5 +320,28 @@ private val MIGRATION_11_12 = object : Migration(11, 12) {
 private val MIGRATION_12_13 = object : Migration(12, 13) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE chat_sessions ADD COLUMN currentWorkTaskJson TEXT")
+    }
+}
+
+private val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE chat_sessions ADD COLUMN userProfileName TEXT")
+    }
+}
+
+private val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS user_profile_presets (
+                profileName TEXT NOT NULL,
+                label TEXT NOT NULL,
+                payloadJson TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                PRIMARY KEY(profileName)
+            )
+            """.trimIndent()
+        )
     }
 }

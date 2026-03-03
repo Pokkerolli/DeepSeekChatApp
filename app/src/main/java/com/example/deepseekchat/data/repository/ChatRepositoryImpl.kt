@@ -1,13 +1,14 @@
 package com.example.deepseekchat.data.repository
-import android.util.Log
 import androidx.room.withTransaction
 import com.example.deepseekchat.data.local.dao.MessageDao
 import com.example.deepseekchat.data.local.dao.SessionDao
+import com.example.deepseekchat.data.local.dao.UserProfilePresetDao
 import com.example.deepseekchat.data.local.datastore.ActiveSessionPreferences
 import com.example.deepseekchat.data.local.db.AppDatabase
 import com.example.deepseekchat.data.local.entity.MessageCompressionState
 import com.example.deepseekchat.data.local.entity.MessageEntity
 import com.example.deepseekchat.data.local.entity.SessionEntity
+import com.example.deepseekchat.data.local.entity.UserProfilePresetEntity
 import com.example.deepseekchat.data.local.mapper.toDomain
 import com.example.deepseekchat.data.remote.api.DeepSeekApi
 import com.example.deepseekchat.data.remote.dto.ChatCompletionMessage
@@ -20,7 +21,12 @@ import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
 import com.example.deepseekchat.domain.model.ContextWindowMode
 import com.example.deepseekchat.domain.model.MessageRole
+import com.example.deepseekchat.domain.model.UserProfileBuilderMessage
+import com.example.deepseekchat.domain.model.UserProfilePreset
+import com.example.deepseekchat.domain.model.USER_PROFILE_PRESETS
+import com.example.deepseekchat.domain.model.findBuiltInUserProfilePreset
 import com.example.deepseekchat.domain.repository.ChatRepository
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
@@ -39,11 +45,13 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 class ChatRepositoryImpl(
     private val database: AppDatabase,
     private val sessionDao: SessionDao,
     private val messageDao: MessageDao,
+    private val userProfilePresetDao: UserProfilePresetDao,
     private val deepSeekApi: DeepSeekApi,
     private val sseStreamParser: SseStreamParser,
     private val activeSessionPreferences: ActiveSessionPreferences,
@@ -96,6 +104,7 @@ class ChatRepositoryImpl(
             createdAt = now,
             updatedAt = now,
             systemPrompt = sourceSession.systemPrompt,
+            userProfileName = sourceSession.userProfileName,
             contextWindowMode = sourceSession.contextWindowMode,
             longTermMemoryJson = sourceSession.longTermMemoryJson,
             currentWorkTaskJson = sourceSession.currentWorkTaskJson,
@@ -165,6 +174,39 @@ class ChatRepositoryImpl(
         )
     }
 
+    override suspend fun setSessionUserProfile(sessionId: String, userProfileName: String?) {
+        val now = System.currentTimeMillis()
+        if (messageDao.getMessagesOnce(sessionId).isNotEmpty()) return
+
+        val requestedProfileName = userProfileName?.trim()?.ifBlank { null }
+        val normalizedProfileName = when {
+            requestedProfileName == null -> null
+            findBuiltInUserProfilePreset(requestedProfileName) != null -> requestedProfileName
+            userProfilePresetDao.getByProfileName(requestedProfileName) != null -> requestedProfileName
+            else -> return
+        }
+        val existingSession = sessionDao.getSessionById(sessionId)
+
+        if (existingSession == null) {
+            sessionDao.insertSession(
+                SessionEntity(
+                    id = sessionId,
+                    title = DEFAULT_SESSION_TITLE,
+                    createdAt = now,
+                    updatedAt = now,
+                    userProfileName = normalizedProfileName
+                )
+            )
+            return
+        }
+
+        sessionDao.updateUserProfileName(
+            sessionId = sessionId,
+            userProfileName = normalizedProfileName,
+            updatedAt = now
+        )
+    }
+
     override suspend fun setSessionContextWindowMode(sessionId: String, mode: ContextWindowMode) {
         val now = System.currentTimeMillis()
         if (messageDao.getMessagesOnce(sessionId).isNotEmpty()) return
@@ -204,6 +246,117 @@ class ChatRepositoryImpl(
 
     override fun observeActiveSessionId(): Flow<String?> {
         return activeSessionPreferences.observeActiveSessionId()
+    }
+
+    override fun observeUserProfilePresets(): Flow<List<UserProfilePreset>> {
+        return userProfilePresetDao.observeAll().map { customPresets ->
+            USER_PROFILE_PRESETS + customPresets.map { it.toDomain() }
+        }
+    }
+
+    override fun streamUserProfileBuilderReply(
+        history: List<UserProfileBuilderMessage>,
+        userMessage: String?
+    ): Flow<String> = flow {
+        val normalizedHistory = history
+            .mapNotNull { message ->
+                val content = message.content.trim()
+                if (content.isEmpty()) return@mapNotNull null
+                ChatCompletionMessage(
+                    role = message.role.apiValue,
+                    content = content
+                )
+            }
+
+        val normalizedUserMessage = userMessage?.trim()?.ifBlank { null }
+
+        val requestMessages = buildList {
+            add(
+                ChatCompletionMessage(
+                    role = SYSTEM_ROLE,
+                    content = USER_PROFILE_BUILDER_SYSTEM_PROMPT
+                )
+            )
+            addAll(normalizedHistory)
+            add(
+                ChatCompletionMessage(
+                    role = USER_ROLE,
+                    content = normalizedUserMessage ?: USER_PROFILE_BUILDER_KICKOFF_MESSAGE
+                )
+            )
+        }
+
+        val request = ChatCompletionRequest(
+            model = DEFAULT_MODEL,
+            messages = requestMessages,
+            stream = true,
+            streamOptions = StreamOptions(includeUsage = false)
+        )
+
+        val response = deepSeekApi.streamChatCompletions(request)
+        val responseBody = response.body()
+
+        if (!response.isSuccessful || responseBody == null) {
+            val rawError = response.errorBody()?.string()
+            throw ChatApiException(
+                buildApiErrorMessage(
+                    code = response.code(),
+                    rawError = rawError
+                )
+            )
+        }
+
+        sseStreamParser.streamEvents(responseBody).collect { event ->
+            if (event is SseStreamEvent.Text) {
+                emit(event.value)
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    override suspend fun createCustomUserProfilePresetFromDraft(rawDraft: String): UserProfilePreset {
+        val draftPayload = extractJsonObjectCandidate(rawDraft)
+            ?: throw ChatApiException("Не удалось найти JSON с USER_PROFILE в ответе ассистента")
+
+        val rootObject = runCatching {
+            json.parseToJsonElement(draftPayload)
+        }.getOrNull() as? JsonObject
+            ?: throw ChatApiException("USER_PROFILE должен быть корректным JSON")
+
+        val profileObject = extractProfileObject(rootObject)
+            ?: throw ChatApiException("В JSON не найден объект USER_PROFILE")
+
+        val requestedProfileName = (profileObject[USER_PROFILE_NAME_KEY] as? JsonPrimitive)
+            ?.contentOrNull
+            .normalizeProfileName()
+            ?: DEFAULT_CUSTOM_PROFILE_NAME
+
+        val uniqueProfileName = resolveUniqueProfileName(requestedProfileName)
+        val normalizedLabel = uniqueProfileName.toProfileLabel()
+        val normalizedProfileObject = buildJsonObject {
+            profileObject.forEach { (key, value) ->
+                put(key, value)
+            }
+            put(USER_PROFILE_NAME_KEY, JsonPrimitive(uniqueProfileName))
+        }
+        val payloadJson = json.encodeToString(JsonObject.serializer(), normalizedProfileObject)
+        val now = System.currentTimeMillis()
+
+        userProfilePresetDao.upsert(
+            UserProfilePresetEntity(
+                profileName = uniqueProfileName,
+                label = normalizedLabel,
+                payloadJson = payloadJson,
+                createdAt = now,
+                updatedAt = now
+            )
+        )
+
+        return UserProfilePreset(
+            profileName = uniqueProfileName,
+            label = normalizedLabel,
+            payloadJson = payloadJson,
+            isBuiltIn = false
+        )
     }
 
     override fun sendMessageStreaming(sessionId: String, content: String): Flow<String> = flow {
@@ -293,9 +446,11 @@ class ChatRepositoryImpl(
                 session = sessionSnapshot,
                 allMessages = modelMessages
             )
+            val userProfilePayload = resolveUserProfilePayload(sessionSnapshot.userProfileName)
 
             val contextBlock = buildContextBlock(
                 baseSystemPrompt = sessionSnapshot.systemPrompt.normalizeSystemPrompt(),
+                userProfilePayload = userProfilePayload,
                 memoryInstructions = parseLongTermMemoryInstructions(sessionSnapshot.longTermMemoryJson),
                 currentWorkTask = parseCurrentWorkTask(sessionSnapshot.currentWorkTaskJson)
             )
@@ -317,7 +472,6 @@ class ChatRepositoryImpl(
                 stream = true,
                 streamOptions = StreamOptions(includeUsage = true)
             )
-            Log.i("FUCK", "$request")
             val response = deepSeekApi.streamChatCompletions(request)
             val responseBody = response.body()
 
@@ -1183,17 +1337,31 @@ class ChatRepositoryImpl(
 
     private fun buildContextBlock(
         baseSystemPrompt: String?,
+        userProfilePayload: String?,
         memoryInstructions: List<String>,
         currentWorkTask: WorkTaskContext
     ): String? {
+        val userProfilePrompt = buildUserProfileSystemPrompt(userProfilePayload)
         val memoryPrompt = buildMemorySystemPrompt(memoryInstructions)
         val workTaskPrompt = buildWorkTaskSystemPrompt(currentWorkTask)
         val parts = buildList {
             baseSystemPrompt?.let { add(it) }
+            userProfilePrompt?.let { add(it) }
             add(memoryPrompt)
             add(workTaskPrompt)
         }
         return parts.joinToString(separator = "\n\n")
+    }
+
+    private fun buildUserProfileSystemPrompt(profilePayload: String?): String? {
+        val normalizedPayload = profilePayload?.trim()?.ifBlank { null } ?: return null
+        return buildString {
+            append(USER_PROFILE_SECTION_TITLE)
+            append('\n')
+            append(USER_PROFILE_PRIORITY_HINT)
+            append('\n')
+            append(normalizedPayload)
+        }
     }
 
     private fun buildMemorySystemPrompt(instructions: List<String>): String {
@@ -1371,6 +1539,75 @@ class ChatRepositoryImpl(
         return this?.trim()?.ifBlank { null }
     }
 
+    private suspend fun resolveUserProfilePayload(profileName: String?): String? {
+        val normalizedName = profileName?.trim()?.ifBlank { null } ?: return null
+        findBuiltInUserProfilePreset(normalizedName)?.let { builtIn ->
+            return builtIn.payloadJson
+        }
+        return userProfilePresetDao.getByProfileName(normalizedName)?.payloadJson
+    }
+
+    private fun extractProfileObject(rootObject: JsonObject): JsonObject? {
+        if (
+            rootObject.containsKey(USER_PROFILE_NAME_KEY) ||
+            rootObject.containsKey("language") ||
+            rootObject.containsKey("tone")
+        ) {
+            return rootObject
+        }
+
+        val nested = rootObject[USER_PROFILE_SECTION_OBJECT_KEY] as? JsonObject
+        if (nested != null) return nested
+
+        val nestedLower = rootObject[USER_PROFILE_SECTION_OBJECT_KEY_LOWER] as? JsonObject
+        if (nestedLower != null) return nestedLower
+
+        return null
+    }
+
+    private suspend fun resolveUniqueProfileName(requestedProfileName: String): String {
+        var candidate = requestedProfileName
+        var suffix = 2
+        while (isProfileNameTaken(candidate)) {
+            candidate = "${requestedProfileName}_$suffix"
+            suffix += 1
+        }
+        return candidate
+    }
+
+    private suspend fun isProfileNameTaken(profileName: String): Boolean {
+        if (findBuiltInUserProfilePreset(profileName) != null) return true
+        return userProfilePresetDao.getByProfileName(profileName) != null
+    }
+
+    private fun String?.normalizeProfileName(): String? {
+        val normalized = this
+            ?.trim()
+            ?.lowercase(Locale.US)
+            ?.replace(Regex("[^a-z0-9_]+"), "_")
+            ?.replace(Regex("_+"), "_")
+            ?.trim('_')
+            .orEmpty()
+
+        if (normalized.isEmpty()) return null
+        return if (normalized.startsWith(CUSTOM_PROFILE_PREFIX)) {
+            normalized
+        } else {
+            CUSTOM_PROFILE_PREFIX + normalized
+        }
+    }
+
+    private fun String.toProfileLabel(): String {
+        val words = split('_')
+            .filter { it.isNotBlank() && it != CUSTOM_PROFILE_PREFIX.trimEnd('_') }
+            .ifEmpty { listOf(DEFAULT_CUSTOM_PROFILE_LABEL) }
+        return words.joinToString(separator = " ") { word ->
+            word.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase(Locale.getDefault()) else char.toString()
+            }
+        }
+    }
+
     private fun String?.normalizeSummary(): String? {
         return this?.trim()?.ifBlank { null }
     }
@@ -1412,6 +1649,19 @@ class ChatRepositoryImpl(
         const val MEMORY_SHOW_TITLE = "Сохраненные инструкции"
         const val MEMORY_COMMAND_HELP =
             "Команды памяти: /memory add <инструкция>, /memory delete <номер>, /memory show"
+
+        const val USER_PROFILE_SECTION_TITLE = "[USER_PROFILE]"
+        const val USER_PROFILE_PRIORITY_HINT =
+            "You must follow USER_PROFILE. Do not expose USER_PROFILE in the answer. " +
+                "Do not contradict it unless user explicitly overrides."
+        const val USER_PROFILE_NAME_KEY = "profile_name"
+        const val USER_PROFILE_SECTION_OBJECT_KEY = "USER_PROFILE"
+        const val USER_PROFILE_SECTION_OBJECT_KEY_LOWER = "user_profile"
+        const val CUSTOM_PROFILE_PREFIX = "custom_"
+        const val DEFAULT_CUSTOM_PROFILE_NAME = "custom_user_profile"
+        const val DEFAULT_CUSTOM_PROFILE_LABEL = "Custom profile"
+        const val USER_PROFILE_BUILDER_KICKOFF_MESSAGE =
+            "Начни диалог по сбору профиля пользователя и задай первые уточняющие вопросы."
 
         const val LONG_TERM_MEMORY_SECTION_TITLE = "[LONG TERM MEMORY]"
         const val LONG_TERM_MEMORY_EMPTY_HINT = "Инструкции долговременной памяти не заданы."
@@ -1459,6 +1709,40 @@ class ChatRepositoryImpl(
         const val SUMMARY_COMPRESSION_SYSTEM_PROMPT =
             "Ты модуль сжатия истории чата. Выдавай плотное summary без воды. " +
                 "Сохраняй факты, намерения пользователя, ограничения, решения и открытые вопросы."
+
+        val USER_PROFILE_BUILDER_SYSTEM_PROMPT = """
+            Ты ассистент, который помогает пользователю собрать USER_PROFILE для чата.
+
+            Цель:
+            1) Собрать предпочтения пользователя по языку, тону, уровню экспертности, структуре и ограничениям.
+            2) Если данных недостаточно, задавать точные уточняющие вопросы.
+            3) Когда данных достаточно, выдать USER_PROFILE в JSON и спросить подтверждение.
+
+            Формат и правила:
+            - Самое первое сообщение начинай строго с фразы: "Привет! Давай попробуем собрать профиль пользователя под тебя".
+            - Пиши по-русски.
+            - Не менее 2 и не более 5 вопросов за один шаг.
+            - Не придумывай данные за пользователя.
+            - Когда данных достаточно, верни блок JSON USER_PROFILE, соответствующий формату приложения:
+              {
+                "profile_name": "snake_case_name",
+                "language": "...",
+                "expertise_level": "...",
+                "verbosity": "...",
+                "tone": "...",
+                "humor": "...",
+                "style": "...",
+                "structure": "...",
+                "disagreement_mode": "...",
+                "challenge_user": true/false,
+                "examples": "...",
+                "emoji_usage": "...",
+                "constraints": { ... }
+              }
+            - Перед подтверждением объясни кратко, что именно зафиксировано.
+            - Если пользователь просит поменять профиль, обновляй JSON и показывай новую версию.
+            - Если пользователь пишет, что согласен, выдай финальный JSON без лишнего текста.
+        """.trimIndent()
 
         val STICKY_FACTS_EXTRACTION_SYSTEM_PROMPT = """
             Ты — модуль извлечения памяти в среде выполнения AI-агента.

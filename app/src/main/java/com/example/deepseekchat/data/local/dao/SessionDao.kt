@@ -33,6 +33,12 @@ interface SessionDao {
     suspend fun updateSystemPrompt(sessionId: String, systemPrompt: String?, updatedAt: Long)
 
     @Query(
+        "UPDATE chat_sessions SET userProfileName = :userProfileName, updatedAt = :updatedAt " +
+            "WHERE id = :sessionId"
+    )
+    suspend fun updateUserProfileName(sessionId: String, userProfileName: String?, updatedAt: Long)
+
+    @Query(
         "UPDATE chat_sessions SET longTermMemoryJson = :longTermMemoryJson, updatedAt = :updatedAt " +
             "WHERE id = :sessionId"
     )

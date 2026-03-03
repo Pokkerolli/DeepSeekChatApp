@@ -2,10 +2,12 @@ package com.example.deepseekchat.data.local.mapper
 
 import com.example.deepseekchat.data.local.entity.MessageEntity
 import com.example.deepseekchat.data.local.entity.SessionEntity
+import com.example.deepseekchat.data.local.entity.UserProfilePresetEntity
 import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
 import com.example.deepseekchat.domain.model.ContextWindowMode
 import com.example.deepseekchat.domain.model.MessageRole
+import com.example.deepseekchat.domain.model.UserProfilePreset
 
 fun SessionEntity.toDomain(): ChatSession {
     return ChatSession(
@@ -14,6 +16,7 @@ fun SessionEntity.toDomain(): ChatSession {
         createdAt = createdAt,
         updatedAt = updatedAt,
         systemPrompt = systemPrompt,
+        userProfileName = userProfileName,
         contextWindowMode = ContextWindowMode.fromStored(contextWindowMode),
         isStickyFactsExtractionInProgress = isStickyFactsExtractionInProgress,
         contextSummary = contextSummary,
@@ -34,5 +37,14 @@ fun MessageEntity.toDomain(): ChatMessage {
         promptCacheMissTokens = promptCacheMissTokens,
         completionTokens = completionTokens,
         totalTokens = totalTokens
+    )
+}
+
+fun UserProfilePresetEntity.toDomain(): UserProfilePreset {
+    return UserProfilePreset(
+        profileName = profileName,
+        label = label,
+        payloadJson = payloadJson,
+        isBuiltIn = false
     )
 }

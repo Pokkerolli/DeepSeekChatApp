@@ -8,6 +8,7 @@ data class ChatSessionUi(
     val title: String,
     val updatedAt: Long,
     val systemPrompt: String?,
+    val userProfileName: String?,
     val contextWindowMode: ContextWindowMode,
     val isStickyFactsExtractionInProgress: Boolean,
     val isContextSummarizationInProgress: Boolean
@@ -31,6 +32,18 @@ data class ChatMessageUi(
     val requestTotalCostUsd: Double? = null
 )
 
+data class UserProfilePresetUi(
+    val profileName: String,
+    val label: String,
+    val isBuiltIn: Boolean
+)
+
+data class ProfileBuilderMessageUi(
+    val stableId: String,
+    val role: MessageRole,
+    val content: String
+)
+
 data class ConversationUsageUi(
     val contextLength: Int = 0,
     val cumulativeTotalCostUsd: Double = 0.0
@@ -41,6 +54,8 @@ data class ChatUiState(
     val activeSessionId: String? = null,
     val activeSessionTitle: String = "New chat",
     val activeSessionSystemPrompt: String? = null,
+    val activeSessionUserProfileName: String? = null,
+    val availableUserProfiles: List<UserProfilePresetUi> = emptyList(),
     val activeSessionContextWindowMode: ContextWindowMode = ContextWindowMode.FULL_HISTORY,
     val isActiveSessionStickyFactsExtractionInProgress: Boolean = false,
     val isActiveSessionContextSummarizationInProgress: Boolean = false,
@@ -48,6 +63,14 @@ data class ChatUiState(
     val input: String = "",
     val isSending: Boolean = false,
     val streamingText: String = "",
+    val isCustomProfileBuilderVisible: Boolean = false,
+    val customProfileBuilderSourceSessionId: String? = null,
+    val customProfileBuilderInput: String = "",
+    val customProfileBuilderMessages: List<ProfileBuilderMessageUi> = emptyList(),
+    val customProfileBuilderStreamingText: String = "",
+    val isCustomProfileBuilderSending: Boolean = false,
+    val canApplyCustomProfile: Boolean = false,
+    val customProfileBuilderErrorMessage: String? = null,
     val errorMessage: String? = null,
     val usage: ConversationUsageUi = ConversationUsageUi()
 )

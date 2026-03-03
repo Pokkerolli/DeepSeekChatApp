@@ -6,6 +6,7 @@ data class ChatSession(
     val createdAt: Long,
     val updatedAt: Long,
     val systemPrompt: String?,
+    val userProfileName: String?,
     val contextWindowMode: ContextWindowMode,
     val isStickyFactsExtractionInProgress: Boolean,
     val contextSummary: String?,

@@ -10,6 +10,7 @@ data class SessionEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val systemPrompt: String? = null,
+    val userProfileName: String? = null,
     val contextWindowMode: String = "FULL_HISTORY",
     val longTermMemoryJson: String? = null,
     val currentWorkTaskJson: String? = null,

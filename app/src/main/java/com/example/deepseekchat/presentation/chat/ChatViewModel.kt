@@ -6,17 +6,22 @@ import com.example.deepseekchat.domain.model.ChatMessage
 import com.example.deepseekchat.domain.model.ChatSession
 import com.example.deepseekchat.domain.model.ContextWindowMode
 import com.example.deepseekchat.domain.model.MessageRole
+import com.example.deepseekchat.domain.model.UserProfileBuilderMessage
+import com.example.deepseekchat.domain.usecase.CreateCustomUserProfilePresetFromDraftUseCase
 import com.example.deepseekchat.domain.usecase.CreateSessionBranchUseCase
 import com.example.deepseekchat.domain.usecase.CreateSessionUseCase
 import com.example.deepseekchat.domain.usecase.DeleteSessionUseCase
 import com.example.deepseekchat.domain.usecase.GetActiveSessionUseCase
 import com.example.deepseekchat.domain.usecase.ObserveMessagesUseCase
+import com.example.deepseekchat.domain.usecase.ObserveUserProfilePresetsUseCase
 import com.example.deepseekchat.domain.usecase.ObserveSessionsUseCase
 import com.example.deepseekchat.domain.usecase.RunContextSummarizationIfNeededUseCase
 import com.example.deepseekchat.domain.usecase.SendMessageUseCase
 import com.example.deepseekchat.domain.usecase.SetActiveSessionUseCase
 import com.example.deepseekchat.domain.usecase.SetSessionContextWindowModeUseCase
 import com.example.deepseekchat.domain.usecase.SetSessionSystemPromptUseCase
+import com.example.deepseekchat.domain.usecase.SetSessionUserProfileUseCase
+import com.example.deepseekchat.domain.usecase.StreamUserProfileBuilderReplyUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,12 +36,16 @@ class ChatViewModel(
     private val sendMessageUseCase: SendMessageUseCase,
     private val observeMessagesUseCase: ObserveMessagesUseCase,
     private val observeSessionsUseCase: ObserveSessionsUseCase,
+    private val observeUserProfilePresetsUseCase: ObserveUserProfilePresetsUseCase,
     private val createSessionUseCase: CreateSessionUseCase,
     private val createSessionBranchUseCase: CreateSessionBranchUseCase,
+    private val createCustomUserProfilePresetFromDraftUseCase: CreateCustomUserProfilePresetFromDraftUseCase,
     private val deleteSessionUseCase: DeleteSessionUseCase,
     private val setActiveSessionUseCase: SetActiveSessionUseCase,
     private val setSessionSystemPromptUseCase: SetSessionSystemPromptUseCase,
+    private val setSessionUserProfileUseCase: SetSessionUserProfileUseCase,
     private val setSessionContextWindowModeUseCase: SetSessionContextWindowModeUseCase,
+    private val streamUserProfileBuilderReplyUseCase: StreamUserProfileBuilderReplyUseCase,
     private val runContextSummarizationIfNeededUseCase: RunContextSummarizationIfNeededUseCase,
     private val getActiveSessionUseCase: GetActiveSessionUseCase
 ) : ViewModel() {
@@ -50,10 +59,12 @@ class ChatViewModel(
     private var messageJob: Job? = null
     private var streamJob: Job? = null
     private var systemPromptJob: Job? = null
+    private var customProfileBuilderJob: Job? = null
     private var creatingInitialSession = false
 
     init {
         observeSessions()
+        observeUserProfilePresets()
         observeActiveSession()
     }
 
@@ -212,6 +223,139 @@ class ChatViewModel(
         }
     }
 
+    fun onUserProfileSelected(userProfileName: String?) {
+        val state = _uiState.value
+        val sessionId = state.activeSessionId ?: return
+        if (state.messages.isNotEmpty() || state.isSending) return
+        if (
+            userProfileName != null &&
+            state.availableUserProfiles.none { it.profileName == userProfileName }
+        ) {
+            return
+        }
+        if (state.activeSessionUserProfileName == userProfileName) return
+
+        _uiState.update { it.copy(activeSessionUserProfileName = userProfileName) }
+        viewModelScope.launch {
+            setSessionUserProfileUseCase(sessionId, userProfileName)
+        }
+    }
+
+    fun onOpenCustomProfileBuilder() {
+        val state = _uiState.value
+        val sessionId = state.activeSessionId ?: return
+        if (state.messages.isNotEmpty() || state.isSending) return
+        if (state.isCustomProfileBuilderVisible) return
+
+        _uiState.update {
+            it.copy(
+                isCustomProfileBuilderVisible = true,
+                customProfileBuilderSourceSessionId = sessionId,
+                customProfileBuilderInput = "",
+                customProfileBuilderMessages = emptyList(),
+                customProfileBuilderStreamingText = "",
+                isCustomProfileBuilderSending = true,
+                canApplyCustomProfile = false,
+                customProfileBuilderErrorMessage = null
+            )
+        }
+        runCustomProfileBuilderRequest(userMessage = null)
+    }
+
+    fun onCloseCustomProfileBuilder() {
+        customProfileBuilderJob?.cancel()
+        customProfileBuilderJob = null
+        _uiState.update {
+            it.copy(
+                isCustomProfileBuilderVisible = false,
+                customProfileBuilderSourceSessionId = null,
+                customProfileBuilderInput = "",
+                customProfileBuilderMessages = emptyList(),
+                customProfileBuilderStreamingText = "",
+                isCustomProfileBuilderSending = false,
+                canApplyCustomProfile = false,
+                customProfileBuilderErrorMessage = null
+            )
+        }
+    }
+
+    fun onCustomProfileBuilderInputChanged(value: String) {
+        _uiState.update { it.copy(customProfileBuilderInput = value) }
+    }
+
+    fun onCustomProfileBuilderSendClicked() {
+        val state = _uiState.value
+        if (!state.isCustomProfileBuilderVisible || state.isCustomProfileBuilderSending) return
+
+        val userText = state.customProfileBuilderInput.trim()
+        if (userText.isEmpty()) return
+
+        val updatedMessages = state.customProfileBuilderMessages + ProfileBuilderMessageUi(
+            stableId = "custom_builder_user_${System.currentTimeMillis()}",
+            role = MessageRole.USER,
+            content = userText
+        )
+
+        _uiState.update {
+            it.copy(
+                customProfileBuilderMessages = updatedMessages,
+                customProfileBuilderInput = "",
+                customProfileBuilderStreamingText = "",
+                isCustomProfileBuilderSending = true,
+                customProfileBuilderErrorMessage = null
+            )
+        }
+
+        runCustomProfileBuilderRequest(userMessage = userText)
+    }
+
+    fun onApplyCustomProfileClicked() {
+        val state = _uiState.value
+        if (!state.isCustomProfileBuilderVisible || state.isCustomProfileBuilderSending) return
+
+        val assistantDraft = state.customProfileBuilderMessages
+            .asReversed()
+            .firstOrNull { it.role == MessageRole.ASSISTANT && it.content.containsUserProfileDraft() }
+            ?.content
+            ?: return
+
+        customProfileBuilderJob?.cancel()
+        customProfileBuilderJob = viewModelScope.launch {
+            runCatching {
+                createCustomUserProfilePresetFromDraftUseCase(assistantDraft)
+            }.onSuccess { createdPreset ->
+                val sourceSessionId = _uiState.value.customProfileBuilderSourceSessionId
+                    ?: _uiState.value.activeSessionId
+                if (sourceSessionId != null) {
+                    setSessionUserProfileUseCase(sourceSessionId, createdPreset.profileName)
+                }
+
+                _uiState.update {
+                    it.copy(
+                        activeSessionUserProfileName = createdPreset.profileName,
+                        isCustomProfileBuilderVisible = false,
+                        customProfileBuilderSourceSessionId = null,
+                        customProfileBuilderInput = "",
+                        customProfileBuilderMessages = emptyList(),
+                        customProfileBuilderStreamingText = "",
+                        isCustomProfileBuilderSending = false,
+                        canApplyCustomProfile = false,
+                        customProfileBuilderErrorMessage = null
+                    )
+                }
+            }.onFailure { throwable ->
+                if (throwable is CancellationException) throw throwable
+                _uiState.update {
+                    it.copy(customProfileBuilderErrorMessage = throwable.toUiMessage())
+                }
+            }
+        }
+    }
+
+    fun consumeCustomProfileBuilderError() {
+        _uiState.update { it.copy(customProfileBuilderErrorMessage = null) }
+    }
+
     fun onContextWindowModeSelected(mode: ContextWindowMode) {
         val state = _uiState.value
         val sessionId = state.activeSessionId ?: return
@@ -226,6 +370,24 @@ class ChatViewModel(
 
     fun consumeError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun observeUserProfilePresets() {
+        viewModelScope.launch {
+            observeUserProfilePresetsUseCase().collect { presets ->
+                _uiState.update {
+                    it.copy(
+                        availableUserProfiles = presets.map { preset ->
+                            UserProfilePresetUi(
+                                profileName = preset.profileName,
+                                label = preset.label,
+                                isBuiltIn = preset.isBuiltIn
+                            )
+                        }
+                    )
+                }
+            }
+        }
     }
 
     private fun observeSessions() {
@@ -311,6 +473,7 @@ class ChatViewModel(
                         title = it.title,
                         updatedAt = it.updatedAt,
                         systemPrompt = it.systemPrompt,
+                        userProfileName = it.userProfileName,
                         contextWindowMode = it.contextWindowMode,
                         isStickyFactsExtractionInProgress = it.isStickyFactsExtractionInProgress,
                         isContextSummarizationInProgress = it.isContextSummarizationInProgress
@@ -319,6 +482,7 @@ class ChatViewModel(
                 activeSessionId = selectedSession?.id,
                 activeSessionTitle = selectedSession?.title ?: "New chat",
                 activeSessionSystemPrompt = selectedSession?.systemPrompt,
+                activeSessionUserProfileName = selectedSession?.userProfileName,
                 activeSessionContextWindowMode =
                     selectedSession?.contextWindowMode ?: ContextWindowMode.FULL_HISTORY,
                 isActiveSessionStickyFactsExtractionInProgress =
@@ -338,6 +502,81 @@ class ChatViewModel(
                 streamingText = ""
             )
         }
+    }
+
+    private fun runCustomProfileBuilderRequest(userMessage: String?) {
+        customProfileBuilderJob?.cancel()
+        customProfileBuilderJob = viewModelScope.launch {
+            var finalAssistantText = ""
+            try {
+                val stateMessages = _uiState.value.customProfileBuilderMessages
+                val messagesForHistory = if (
+                    userMessage != null &&
+                    stateMessages.lastOrNull()?.role == MessageRole.USER &&
+                    stateMessages.lastOrNull()?.content == userMessage
+                ) {
+                    stateMessages.dropLast(1)
+                } else {
+                    stateMessages
+                }
+
+                val history = messagesForHistory
+                    .map {
+                        UserProfileBuilderMessage(
+                            role = it.role,
+                            content = it.content
+                        )
+                    }
+
+                streamUserProfileBuilderReplyUseCase(
+                    history = history,
+                    userMessage = userMessage
+                ).collect { partial ->
+                    finalAssistantText = partial
+                    _uiState.update { state ->
+                        state.copy(customProfileBuilderStreamingText = partial)
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (throwable: Throwable) {
+                _uiState.update {
+                    it.copy(
+                        isCustomProfileBuilderSending = false,
+                        customProfileBuilderStreamingText = "",
+                        customProfileBuilderErrorMessage = throwable.toUiMessage()
+                    )
+                }
+                return@launch
+            }
+
+            _uiState.update { state ->
+                val normalizedAssistant = finalAssistantText.trim()
+                val newMessages = if (normalizedAssistant.isEmpty()) {
+                    state.customProfileBuilderMessages
+                } else {
+                    state.customProfileBuilderMessages + ProfileBuilderMessageUi(
+                        stableId = "custom_builder_assistant_${System.currentTimeMillis()}",
+                        role = MessageRole.ASSISTANT,
+                        content = normalizedAssistant
+                    )
+                }
+
+                state.copy(
+                    customProfileBuilderMessages = newMessages,
+                    customProfileBuilderStreamingText = "",
+                    isCustomProfileBuilderSending = false,
+                    canApplyCustomProfile = newMessages.any {
+                        it.role == MessageRole.ASSISTANT && it.content.containsUserProfileDraft()
+                    }
+                )
+            }
+        }
+    }
+
+    private fun String.containsUserProfileDraft(): Boolean {
+        val normalized = lowercase()
+        return normalized.contains("\"profile_name\"") && contains('{') && contains('}')
     }
 
     private fun List<ChatMessage>.toUiModelsWithUsage(): UsageCalculation {

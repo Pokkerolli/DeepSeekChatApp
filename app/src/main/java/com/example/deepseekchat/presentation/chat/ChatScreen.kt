@@ -26,12 +26,14 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -44,10 +46,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,11 +60,12 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.deepseekchat.domain.model.ContextWindowMode
 import com.example.deepseekchat.domain.model.MessageRole
@@ -86,6 +88,12 @@ fun ChatRoute(
         onCreateSession = viewModel::onCreateNewSession,
         onCreateBranchClick = viewModel::onCreateBranchClicked,
         onSystemPromptSelected = viewModel::onSystemPromptSelected,
+        onUserProfileSelected = viewModel::onUserProfileSelected,
+        onOpenCustomProfileBuilder = viewModel::onOpenCustomProfileBuilder,
+        onCustomProfileBuilderInputChanged = viewModel::onCustomProfileBuilderInputChanged,
+        onCustomProfileBuilderSendClick = viewModel::onCustomProfileBuilderSendClicked,
+        onApplyCustomProfileClick = viewModel::onApplyCustomProfileClicked,
+        onCloseCustomProfileBuilder = viewModel::onCloseCustomProfileBuilder,
         onContextWindowModeSelected = viewModel::onContextWindowModeSelected,
         onConsumeError = viewModel::consumeError
     )
@@ -102,6 +110,12 @@ private fun ChatScreen(
     onCreateSession: () -> Unit,
     onCreateBranchClick: (Long) -> Unit,
     onSystemPromptSelected: (String) -> Unit,
+    onUserProfileSelected: (String?) -> Unit,
+    onOpenCustomProfileBuilder: () -> Unit,
+    onCustomProfileBuilderInputChanged: (String) -> Unit,
+    onCustomProfileBuilderSendClick: () -> Unit,
+    onApplyCustomProfileClick: () -> Unit,
+    onCloseCustomProfileBuilder: () -> Unit,
     onContextWindowModeSelected: (ContextWindowMode) -> Unit,
     onConsumeError: () -> Unit
 ) {
@@ -209,12 +223,14 @@ private fun ChatScreen(
                 value = state.input,
                 isSending = state.isSending,
                 showSystemPromptPresets = state.messages.isEmpty() && !state.isSending,
-                selectedSystemPrompt = state.activeSessionSystemPrompt,
+                selectedUserProfileName = state.activeSessionUserProfileName,
+                userProfilePresets = state.availableUserProfiles,
                 selectedContextWindowMode = state.activeSessionContextWindowMode,
                 isStickyFactsExtractionInProgress = state.isActiveSessionStickyFactsExtractionInProgress,
                 isContextSummarizationInProgress = state.isActiveSessionContextSummarizationInProgress,
                 onValueChanged = onInputChanged,
-                onSystemPromptSelected = onSystemPromptSelected,
+                onUserProfileSelected = onUserProfileSelected,
+                onOpenCustomProfileBuilder = onOpenCustomProfileBuilder,
                 onContextWindowModeSelected = onContextWindowModeSelected,
                 onSendClick = onSendClick
             )
@@ -270,6 +286,21 @@ private fun ChatScreen(
                 onCreateSession()
                 showSessionsSheet = false
             }
+        )
+    }
+
+    if (state.isCustomProfileBuilderVisible) {
+        CustomProfileBuilderDialog(
+            messages = state.customProfileBuilderMessages,
+            streamingText = state.customProfileBuilderStreamingText,
+            input = state.customProfileBuilderInput,
+            isSending = state.isCustomProfileBuilderSending,
+            canApplyProfile = state.canApplyCustomProfile,
+            errorMessage = state.customProfileBuilderErrorMessage,
+            onDismissRequest = onCloseCustomProfileBuilder,
+            onInputChanged = onCustomProfileBuilderInputChanged,
+            onSendClick = onCustomProfileBuilderSendClick,
+            onApplyProfileClick = onApplyCustomProfileClick
         )
     }
 }
@@ -431,12 +462,14 @@ private fun MessageInputBar(
     value: String,
     isSending: Boolean,
     showSystemPromptPresets: Boolean,
-    selectedSystemPrompt: String?,
+    selectedUserProfileName: String?,
+    userProfilePresets: List<UserProfilePresetUi>,
     selectedContextWindowMode: ContextWindowMode,
     isStickyFactsExtractionInProgress: Boolean,
     isContextSummarizationInProgress: Boolean,
     onValueChanged: (String) -> Unit,
-    onSystemPromptSelected: (String) -> Unit,
+    onUserProfileSelected: (String?) -> Unit,
+    onOpenCustomProfileBuilder: () -> Unit,
     onContextWindowModeSelected: (ContextWindowMode) -> Unit,
     onSendClick: () -> Unit
 ) {
@@ -450,21 +483,48 @@ private fun MessageInputBar(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (showSystemPromptPresets) {
-                Text(text = "System prompt")
+                Text(
+                    text = "Профиль пользователя",
+                    modifier = Modifier.padding(top = 5.dp)
+                )
 
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    items(
-                        items = SYSTEM_PROMPT_PRESETS,
-                        key = { it.label }
-                    ) { preset ->
+                    item(key = "no_profile") {
                         FilterChip(
-                            selected = selectedSystemPrompt == preset.prompt,
-                            onClick = { onSystemPromptSelected(preset.prompt) },
+                            selected = selectedUserProfileName == null,
+                            onClick = { onUserProfileSelected(null) },
+                            label = {
+                                Text(text = "Без профиля")
+                            }
+                        )
+                    }
+
+                    items(
+                        items = userProfilePresets,
+                        key = { it.profileName }
+                    ) { preset ->
+                        val isSelected = selectedUserProfileName == preset.profileName
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                val selected = if (isSelected) null else preset.profileName
+                                onUserProfileSelected(selected)
+                            },
                             label = {
                                 Text(text = preset.label)
+                            }
+                        )
+                    }
+
+                    item(key = "custom_profile_builder") {
+                        FilterChip(
+                            selected = false,
+                            onClick = onOpenCustomProfileBuilder,
+                            label = {
+                                Text(text = "Custom")
                             }
                         )
                     }
@@ -577,6 +637,205 @@ private fun MessageInputBar(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomProfileBuilderDialog(
+    messages: List<ProfileBuilderMessageUi>,
+    streamingText: String,
+    input: String,
+    isSending: Boolean,
+    canApplyProfile: Boolean,
+    errorMessage: String?,
+    onDismissRequest: () -> Unit,
+    onInputChanged: (String) -> Unit,
+    onSendClick: () -> Unit,
+    onApplyProfileClick: () -> Unit
+) {
+    val listState = rememberLazyListState()
+
+    val displayMessages = remember(messages, streamingText, isSending) {
+        val shouldShowStreamingBubble = streamingText.isNotEmpty() || isSending
+        if (!shouldShowStreamingBubble) {
+            messages
+        } else {
+            messages + ProfileBuilderMessageUi(
+                stableId = "custom_profile_streaming",
+                role = MessageRole.ASSISTANT,
+                content = streamingText
+            )
+        }
+    }
+
+    LaunchedEffect(
+        displayMessages.lastOrNull()?.stableId,
+        displayMessages.lastOrNull()?.content
+    ) {
+        if (displayMessages.isEmpty()) return@LaunchedEffect
+        withFrameNanos { }
+        listState.scrollToBottom()
+    }
+
+    Dialog(
+        onDismissRequest = onDismissRequest
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+                .imePadding()
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text(text = "Custom профиль") },
+                        navigationIcon = {
+                            IconButton(onClick = onDismissRequest) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close"
+                                )
+                            }
+                        },
+                        actions = {
+                            TextButton(
+                                enabled = canApplyProfile && !isSending,
+                                onClick = onApplyProfileClick
+                            ) {
+                                Text(text = "Применить")
+                            }
+                        }
+                    )
+                },
+                bottomBar = {
+                    Surface(tonalElevation = 2.dp) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            TextField(
+                                value = input,
+                                onValueChange = onInputChanged,
+                                modifier = Modifier.weight(1f),
+                                minLines = 1,
+                                maxLines = 6,
+                                shape = MaterialTheme.shapes.extraLarge,
+                                placeholder = {
+                                    Text(text = "Ответьте ассистенту...")
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Sentences
+                                ),
+                                colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    disabledIndicatorColor = Color.Transparent,
+                                    errorIndicatorColor = Color.Transparent
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            FilledIconButton(
+                                onClick = onSendClick,
+                                enabled = input.isNotBlank() && !isSending
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send"
+                                )
+                            }
+                        }
+                    }
+                }
+            ) { contentPadding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = contentPadding.calculateTopPadding(),
+                            bottom = contentPadding.calculateBottomPadding()
+                        )
+                ) {
+                    errorMessage?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(top = 8.dp),
+                        state = listState,
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(
+                            items = displayMessages,
+                            key = { it.stableId }
+                        ) { message ->
+                            CustomProfileBuilderMessageBubble(
+                                message = message,
+                                isStreaming = isSending && message.stableId == "custom_profile_streaming"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+private fun CustomProfileBuilderMessageBubble(
+    message: ProfileBuilderMessageUi,
+    isStreaming: Boolean
+) {
+    val isUser = message.role == MessageRole.USER
+    val bubbleColor = if (isUser) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val maxBubbleWidth = maxWidth * 0.86f
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+        ) {
+            Surface(
+                modifier = Modifier.widthIn(max = maxBubbleWidth),
+                color = bubbleColor,
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = if (isUser) 1.dp else 0.dp
+            ) {
+                val cursorVisible = rememberBlinkingCursorVisible(enabled = isStreaming)
+                val renderedText = if (isStreaming && cursorVisible) {
+                    "${message.content}▍"
+                } else {
+                    message.content
+                }
+
+                Text(
+                    text = renderedText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun rememberBlinkingCursorVisible(enabled: Boolean): Boolean {
     if (!enabled) return false
@@ -640,39 +899,6 @@ private val CONTEXT_WINDOW_MODE_OPTIONS = listOf(
     )
 )
 
-private val SYSTEM_PROMPT_PRESETS = listOf(
-    SystemPromptPreset(
-        label = "Лаконичные ответы",
-        prompt = "Ты — полезный ассистент. Отвечай кратко, по делу и структурно.\n" +
-                "Правила:\n" +
-                "Сначала дай итог/ответ в 1–2 предложениях.\n" +
-                "Затем (если нужно) — короткий список действий/пунктов.\n" +
-                "Не добавляй лишней теории, воды, предупреждений и “размышлений вслух”.\n" +
-                "Если запрос неполный, не задавай много вопросов: сделай разумные допущения и явно отметь их одной строкой.\n" +
-                "Используй форматирование: короткие абзацы, маркированные списки, мини-заголовки.\n" +
-                "Если пользователь просит текст/письмо/план — сразу выдай готовый вариант.\n" +
-                "Если нужна точность (цифры, сроки, формулировки) — уточни 1 ключевой вопрос, иначе продолжай с допущением.\n" +
-                "Тон: спокойный, деловой, без фамильярности."
-    ),
-    SystemPromptPreset(
-        label = "Наставник",
-        prompt = "Ты — экспертный ассистент и наставник. Отвечай развернуто, понятно, с примерами и пошаговым разбором.\n" +
-                "Правила:\n" +
-                "Структура ответа:\n" +
-                "Короткое резюме (2–4 строки)\n" +
-                "Пошаговое объяснение (логика/алгоритм)\n" +
-                "Примеры (минимум 1–2, лучше с вариациями)\n" +
-                "Типичные ошибки и как избежать\n" +
-                "Что делать дальше (чеклист/следующие шаги)\n" +
-                "Для сложных задач: сначала опиши план решения, затем выполняй его.\n" +
-                "Если данных не хватает, задай до 3 уточняющих вопросов, но параллельно предложи решение на основе допущений.\n" +
-                "Пиши простым языком, раскрывай термины.\n" +
-                "Можно использовать таблицы, списки, схемы, псевдокод.\n" +
-                "Тон: дружелюбный, терпеливый, обучающий.\n" +
-                "Если пользователь просит “быстро” или “только ответ” — сокращай объём, но всё равно сохраняй ясность."
-    ),
-)
-
 @Preview(showBackground = true, widthDp = 412, heightDp = 915)
 @Composable
 private fun ChatScreenPreview() {
@@ -686,6 +912,7 @@ private fun ChatScreenPreview() {
                             title = "Preview chat",
                             updatedAt = System.currentTimeMillis(),
                             systemPrompt = null,
+                            userProfileName = "mentor_expert",
                             contextWindowMode = ContextWindowMode.SUMMARY_PLUS_LAST_10,
                             isStickyFactsExtractionInProgress = true,
                             isContextSummarizationInProgress = true
@@ -693,7 +920,21 @@ private fun ChatScreenPreview() {
                     ),
                     activeSessionId = "preview-session",
                     activeSessionTitle = "Preview chat",
+                    activeSessionSystemPrompt = null,
                     activeSessionContextWindowMode = ContextWindowMode.SUMMARY_PLUS_LAST_10,
+                    activeSessionUserProfileName = "mentor_expert",
+                    availableUserProfiles = listOf(
+                        UserProfilePresetUi(
+                            profileName = "casual_friendly",
+                            label = "Бытовой чат",
+                            isBuiltIn = true
+                        ),
+                        UserProfilePresetUi(
+                            profileName = "mentor_expert",
+                            label = "Технический / экспертный диалог",
+                            isBuiltIn = true
+                        )
+                    ),
                     isActiveSessionStickyFactsExtractionInProgress = true,
                     isActiveSessionContextSummarizationInProgress = true,
                     messages = listOf(
@@ -743,6 +984,95 @@ private fun ChatScreenPreview() {
                 onCreateSession = {},
                 onCreateBranchClick = {},
                 onSystemPromptSelected = {},
+                onUserProfileSelected = {},
+                onOpenCustomProfileBuilder = {},
+                onCustomProfileBuilderInputChanged = {},
+                onCustomProfileBuilderSendClick = {},
+                onApplyCustomProfileClick = {},
+                onCloseCustomProfileBuilder = {},
+                onContextWindowModeSelected = {},
+                onConsumeError = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 412, heightDp = 915, name = "Custom Profile Builder Open")
+@Composable
+private fun ChatScreenWithCustomProfileBuilderPreview() {
+    DeepSeekChatTheme(dynamicColor = false) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            ChatScreen(
+                state = ChatUiState(
+                    sessions = listOf(
+                        ChatSessionUi(
+                            id = "preview-session",
+                            title = "Preview chat",
+                            updatedAt = System.currentTimeMillis(),
+                            systemPrompt = null,
+                            userProfileName = "mentor_expert",
+                            contextWindowMode = ContextWindowMode.SUMMARY_PLUS_LAST_10,
+                            isStickyFactsExtractionInProgress = false,
+                            isContextSummarizationInProgress = false
+                        )
+                    ),
+                    activeSessionId = "preview-session",
+                    activeSessionTitle = "Preview chat",
+                    activeSessionSystemPrompt = null,
+                    activeSessionContextWindowMode = ContextWindowMode.SUMMARY_PLUS_LAST_10,
+                    activeSessionUserProfileName = "mentor_expert",
+                    availableUserProfiles = listOf(
+                        UserProfilePresetUi(
+                            profileName = "casual_friendly",
+                            label = "Бытовой чат",
+                            isBuiltIn = true
+                        ),
+                        UserProfilePresetUi(
+                            profileName = "mentor_expert",
+                            label = "Технический / экспертный диалог",
+                            isBuiltIn = true
+                        )
+                    ),
+                    messages = listOf(
+                        ChatMessageUi(
+                            stableId = "preview-user-1",
+                            role = MessageRole.USER,
+                            content = "Сделай краткий план запуска MVP за 2 недели.",
+                            timestamp = System.currentTimeMillis() - 90_000
+                        )
+                    ),
+                    input = "Сделай чуть короче.",
+                    isCustomProfileBuilderVisible = true,
+                    customProfileBuilderInput = "Хочу дружелюбно, но по делу.",
+                    customProfileBuilderMessages = listOf(
+                        ProfileBuilderMessageUi(
+                            stableId = "custom_builder_assistant_1",
+                            role = MessageRole.ASSISTANT,
+                            content = "Привет! Давай попробуем собрать профиль пользователя под тебя.\n1) Какой тон тебе комфортен?\n2) Насколько подробные ответы хочешь?\n3) Нужны ли эмодзи?"
+                        ),
+                        ProfileBuilderMessageUi(
+                            stableId = "custom_builder_user_1",
+                            role = MessageRole.USER,
+                            content = "Тон спокойный, ответы средние по длине, эмодзи редко."
+                        )
+                    ),
+                    customProfileBuilderStreamingText = "Супер, фиксирую это. Еще уточню: нужен ли формат с шагами?",
+                    isCustomProfileBuilderSending = true,
+                    canApplyCustomProfile = true
+                ),
+                onInputChanged = {},
+                onSendClick = {},
+                onSessionSelected = {},
+                onSessionDeleted = {},
+                onCreateSession = {},
+                onCreateBranchClick = {},
+                onSystemPromptSelected = {},
+                onUserProfileSelected = {},
+                onOpenCustomProfileBuilder = {},
+                onCustomProfileBuilderInputChanged = {},
+                onCustomProfileBuilderSendClick = {},
+                onApplyCustomProfileClick = {},
+                onCloseCustomProfileBuilder = {},
                 onContextWindowModeSelected = {},
                 onConsumeError = {}
             )
